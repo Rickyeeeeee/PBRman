@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.5)
 
 project(PBRman)
 
-add_executable(PBRman main.cpp)
+add_subdirectory(src)
