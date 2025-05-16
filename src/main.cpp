@@ -7,6 +7,7 @@
 #include <nvrhi/nvrhi.h>
 #include <nvrhi/d3d12.h>
 #include <nvrhi/validation.h>
+#include <nvrhi/utils.h>
 
 #include <d3d12.h>
 #include <wrl.h>
@@ -99,6 +100,11 @@ int main() {
         
         // Rendering
         commandList->open();
+        nvrhi::utils::ClearColorAttachment(
+            commandList, 
+            swapChainFrameBufferHandles[backBufferIndex], 
+            0,
+            nvrhi::Color(0.5f, 0.6f, 0.2f, 1.0f));
         commandList->close();
         nvrhiDevice->executeCommandList(commandList);
         
@@ -119,7 +125,6 @@ int main() {
     }
 
     // Cleanup
-
     glfwDestroyWindow(window);
     glfwTerminate();
 
@@ -218,7 +223,6 @@ void CreateAssets()
 
 int InitWindow()
 {
-    // Initialization
     // Windows init
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Disable OpenGL context
