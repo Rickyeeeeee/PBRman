@@ -52,7 +52,9 @@ nvrhi::DeviceHandle nvrhiDevice;
 nvrhi::RefCountPtr<ID3D12Resource> swapChainBuffers[FrameCount];
 nvrhi::TextureHandle swapChainBufferHandles[FrameCount];
 nvrhi::RefCountPtr<ID3D12Fence> frameFence;
-HANDLE frameFenceEvent[FrameCount];
+uint32_t frameFenceValue[FrameCount] = { 0 };
+uint32_t fenceValue = 0;
+HANDLE frameFenceEvent;
 nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 
 // Application objects
@@ -84,11 +86,7 @@ int main() {
 
     InitDevice();
     CreateSwapChainRenderTargets();
-
-    for (uint32_t bufferIndex = 0; bufferIndex < FrameCount; bufferIndex++)
-    {
-        frameFenceEvent[bufferIndex] = CreateEvent(nullptr, false, true, nullptr);
-    }
+    CreateAssets();
     
     // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
@@ -97,18 +95,26 @@ int main() {
 
         // Begin frame
         // Wait for previous frame
-        // auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
-        // WaitForSingleObject(frameFenceEvent[backBufferIndex], INFINITE);
-
+        auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+        
         // Rendering
-        // commandList->open();
-        // commandList->close();
-        // nvrhiDevice->executeCommandList(commandList);
-
+        commandList->open();
+        commandList->close();
+        nvrhiDevice->executeCommandList(commandList);
+        
         // End frame
         // Present
-        // backBufferIndex = swapChain->GetCurrentBackBufferIndex();
-        // ThrowIfFailed(swapChain->Present(1, 0));
+        ThrowIfFailed(swapChain->Present(1, 0));
+        frameFenceValue[backBufferIndex] = fenceValue++;
+        ThrowIfFailed(commandQueue->Signal(frameFence.Get(), frameFenceValue[backBufferIndex]));
+        backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+
+        if (frameFence->GetCompletedValue() < frameFenceValue[backBufferIndex])
+        {
+            ThrowIfFailed(frameFence->SetEventOnCompletion(frameFenceValue[backBufferIndex], frameFenceEvent));
+            WaitForSingleObject(frameFenceEvent, INFINITE);
+        }
+
 
     }
 
@@ -137,7 +143,6 @@ void InitDevice()
 #endif
 
     ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
-
     
     GetHardwareAdapter(factory.Get(), &hardwareAdapter);
 
@@ -172,6 +177,12 @@ void InitDevice()
     nvrhi::RefCountPtr<IDXGISwapChain1> sc1;
     ThrowIfFailed(factory->CreateSwapChainForHwnd(commandQueue.Get(), hwnd, &scDesc, nullptr, nullptr, &sc1));
     ThrowIfFailed(sc1->QueryInterface(IID_PPV_ARGS(&swapChain)));
+
+    // Create a fence for the swap chain
+    ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&frameFence)));
+
+    // Create an event handle to use for frame synchronization
+    frameFenceEvent = CreateEvent(nullptr, false, true, nullptr);
 }
 
 void CreateSwapChainRenderTargets()
@@ -185,7 +196,7 @@ void CreateSwapChainRenderTargets()
         textureDesc.height = Height;
         textureDesc.sampleCount = 1;
         textureDesc.sampleQuality = 0;
-        textureDesc.format = nvrhi::Format::RGBA8_SNORM;
+        textureDesc.format = nvrhi::Format::RGBA8_UNORM;
         textureDesc.debugName = "SwapChainBuffer";
         textureDesc.isRenderTarget = true;
         textureDesc.isUAV = false;
