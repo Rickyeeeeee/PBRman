@@ -16,10 +16,12 @@ target_link_libraries(PBRman
     nvrhi_d3d12
     d3d12
     dxgi
+    glm::glm
 )
 
 target_include_directories(PBRman PRIVATE
     src
     ${PROJECT_SOURCE_DIR}/external/glfw/include
     ${PROJECT_SOURCE_DIR}/external/nvrhi/include
+    ${PROJECT_SOURCE_DIR}/external/glm
 )

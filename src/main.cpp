@@ -5,11 +5,19 @@
 #include <GLFW/glfw3native.h>
 #include <nvrhi/nvrhi.h>
 #include <nvrhi/d3d12.h>
+#include <nvrhi/validation.h>
+
 #include <d3d12.h>
 #include <wrl.h>
 #include <dxgi1_6.h>
 
-void GetHardwareAdapter(IDXGIFactory1* pFactory, IDXGIAdapter1** ppAdapter, bool requestHighPerformanceAdapter=true);
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+
+void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
+int InitWindow();
+
+void InitDevice();
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -26,34 +34,66 @@ const UINT FrameCount = 2;
 
 // Native objects
 HWND hwnd = nullptr;
-Microsoft::WRL::ComPtr<ID3D12Device> device;
-Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain;
-Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue;
+GLFWwindow* window = nullptr;
+nvrhi::RefCountPtr<IDXGIFactory4> factory;
+nvrhi::RefCountPtr<IDXGIAdapter1> hardwareAdapter;
+nvrhi::RefCountPtr<ID3D12Device> device;
+nvrhi::RefCountPtr<IDXGISwapChain3> swapChain;
+nvrhi::RefCountPtr<ID3D12CommandQueue> commandQueue;
 
 // nvrhi objects
 nvrhi::DeviceHandle nvrhiDevice;
 bool enableNVRHIValidation = true;
 nvrhi::TextureHandle swapChainTextures[FrameCount];
 
+// Vertex structure
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
+// Cube data
+Vertex cubeVertices[] = {
+    {{-1,-1,-1}, {1,0,0}}, {{-1, 1,-1}, {0,1,0}}, {{1, 1,-1}, {0,0,1}}, {{1,-1,-1}, {1,1,0}},
+    {{-1,-1, 1}, {1,0,1}}, {{-1, 1, 1}, {0,1,1}}, {{1, 1, 1}, {1,1,1}}, {{1,-1, 1}, {0,0,0}},
+};
+
+uint16_t cubeIndices[] = {
+    0,1,2, 0,2,3,  4,6,5, 4,7,6,
+    4,5,1, 4,1,0,  3,2,6, 3,6,7,
+    1,5,6, 1,6,2,  4,0,3, 4,3,7,
+};
+
+
+
 int main() {
 
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Disable OpenGL context
-
-    GLFWwindow* window = glfwCreateWindow(800, 600, "PBRMan", nullptr, nullptr);
-
-    HWND hwnd = glfwGetWin32Window(window);
-
-    if (!hwnd) {
-        std::cerr << "Failed to get window handle" << std::endl;
+    auto retVal = InitWindow();
+    if (retVal < 0)
         return -1;
+
+    InitDevice();
+
+    while(!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
     }
 
-        UINT dxgiFactoryFlags = 0;
+    // Cleanup
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+
+    return 0;
+}
+
+void InitDevice()
+{
+// DX12 Initialization
+    UINT dxgiFactoryFlags = 0;
 
 #if defined(_DEBUG)
     {
-        Microsoft::WRL::ComPtr<ID3D12Debug> debugController;
+        nvrhi::RefCountPtr<ID3D12Debug> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
             std::cout << "Debug Layer Enabled" << std::endl;
             debugController->EnableDebugLayer();
@@ -62,10 +102,9 @@ int main() {
     }
 #endif
 
-    Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
     ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&factory)));
 
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> hardwareAdapter;
+    
     GetHardwareAdapter(factory.Get(), &hardwareAdapter);
 
     ThrowIfFailed(D3D12CreateDevice(
@@ -84,7 +123,8 @@ int main() {
     deviceDesc.pDevice = device.Get();
     deviceDesc.pGraphicsCommandQueue = commandQueue.Get();
 
-    nvrhi::DeviceHandle nvrhiDevice = nvrhi::d3d12::createDevice(deviceDesc);
+    nvrhiDevice = nvrhi::d3d12::createDevice(deviceDesc);
+    nvrhiDevice = nvrhi::validation::createValidationLayer(nvrhiDevice);
 
     DXGI_SWAP_CHAIN_DESC1 scDesc = {};
     scDesc.BufferCount = FrameCount; // Use FrameCount
@@ -95,21 +135,28 @@ int main() {
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     scDesc.SampleDesc.Count = 1;
 
-    Microsoft::WRL::ComPtr<IDXGISwapChain1> sc1;
+    nvrhi::RefCountPtr<IDXGISwapChain1> sc1;
     ThrowIfFailed(factory->CreateSwapChainForHwnd(commandQueue.Get(), hwnd, &scDesc, nullptr, nullptr, &sc1));
-    ThrowIfFailed(sc1.As(&swapChain));
+    ThrowIfFailed(sc1->QueryInterface(IID_PPV_ARGS(&swapChain)));
+}
 
+int InitWindow()
+{
+    // Initialization
+    // Windows init
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Disable OpenGL context
 
-    while(!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+    window = glfwCreateWindow(800, 600, "PBRMan", nullptr, nullptr);
+
+    hwnd = glfwGetWin32Window(window);
+
+    if (!hwnd)
+    {
+        std::cerr << "Failed to get window handle" << std::endl;
+        return -1;
     }
-
-    // Cleanup
-
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
-    return 0;
+    return 1;
 }
 
 static void GetHardwareAdapter(
@@ -117,9 +164,9 @@ static void GetHardwareAdapter(
     IDXGIAdapter1** ppAdapter,
     bool requestHighPerformanceAdapter) {
     *ppAdapter = nullptr;
-    Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+    nvrhi::RefCountPtr<IDXGIAdapter1> adapter;
 
-    Microsoft::WRL::ComPtr<IDXGIFactory6> factory6;
+    nvrhi::RefCountPtr<IDXGIFactory6> factory6;
     if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6)))) {
         for (UINT adapterIndex = 0;
             SUCCEEDED(factory6->EnumAdapterByGpuPreference(
