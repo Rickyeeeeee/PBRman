@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iostream>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -16,8 +17,8 @@
 
 void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
 int InitWindow();
-
 void InitDevice();
+void CreateSwapChainRenderTargets();
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -32,19 +33,26 @@ const UINT Width = 800;
 const UINT Height = 600;
 const UINT FrameCount = 2;
 
-// Native objects
+bool enableNVRHIValidation = true;
+
+// Window objects
 HWND hwnd = nullptr;
 GLFWwindow* window = nullptr;
+
+// Device objects
 nvrhi::RefCountPtr<IDXGIFactory4> factory;
 nvrhi::RefCountPtr<IDXGIAdapter1> hardwareAdapter;
 nvrhi::RefCountPtr<ID3D12Device> device;
 nvrhi::RefCountPtr<IDXGISwapChain3> swapChain;
 nvrhi::RefCountPtr<ID3D12CommandQueue> commandQueue;
-
-// nvrhi objects
 nvrhi::DeviceHandle nvrhiDevice;
-bool enableNVRHIValidation = true;
-nvrhi::TextureHandle swapChainTextures[FrameCount];
+
+// Swapchain render targets
+nvrhi::RefCountPtr<ID3D12Resource> swapChainBuffers[FrameCount];
+nvrhi::TextureHandle swapChainBufferHandles[FrameCount];
+nvrhi::RefCountPtr<ID3D12Fence> frameFence;
+HANDLE frameFenceEvent[FrameCount];
+nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 
 // Vertex structure
 struct Vertex {
@@ -64,8 +72,6 @@ uint16_t cubeIndices[] = {
     1,5,6, 1,6,2,  4,0,3, 4,3,7,
 };
 
-
-
 int main() {
 
     auto retVal = InitWindow();
@@ -73,9 +79,23 @@ int main() {
         return -1;
 
     InitDevice();
+    CreateSwapChainRenderTargets();
 
+    for (uint32_t bufferIndex = 0; bufferIndex < FrameCount; bufferIndex++)
+    {
+        frameFenceEvent[bufferIndex] = CreateEvent(nullptr, false, true, nullptr);
+    }
+    
+    // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
+
         glfwPollEvents();
+
+        // Wait for previous frame
+        // auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+        // WaitForSingleObject(frameFenceEvent[backBufferIndex], INFINITE);
+
+        // Rendering
     }
 
     // Cleanup
@@ -138,6 +158,32 @@ void InitDevice()
     nvrhi::RefCountPtr<IDXGISwapChain1> sc1;
     ThrowIfFailed(factory->CreateSwapChainForHwnd(commandQueue.Get(), hwnd, &scDesc, nullptr, nullptr, &sc1));
     ThrowIfFailed(sc1->QueryInterface(IID_PPV_ARGS(&swapChain)));
+}
+
+void CreateSwapChainRenderTargets()
+{
+    for(UINT n = 0; n < FrameCount; n++)
+    {
+        ThrowIfFailed(swapChain->GetBuffer(n, IID_PPV_ARGS(&swapChainBuffers[n])));
+
+        nvrhi::TextureDesc textureDesc;
+        textureDesc.width = Width;
+        textureDesc.height = Height;
+        textureDesc.sampleCount = 1;
+        textureDesc.sampleQuality = 0;
+        textureDesc.format = nvrhi::Format::RGBA8_SNORM;
+        textureDesc.debugName = "SwapChainBuffer";
+        textureDesc.isRenderTarget = true;
+        textureDesc.isUAV = false;
+        textureDesc.initialState = nvrhi::ResourceStates::Present;
+        textureDesc.keepInitialState = true;
+
+        swapChainBufferHandles[n] = nvrhiDevice->createHandleForNativeTexture(nvrhi::ObjectTypes::D3D12_Resource, nvrhi::Object(swapChainBuffers[n]), textureDesc);
+
+        swapChainFrameBufferHandles[n] = nvrhiDevice->createFramebuffer(
+            nvrhi::FramebufferDesc().addColorAttachment(swapChainBufferHandles[n])
+        );
+    }
 }
 
 int InitWindow()
