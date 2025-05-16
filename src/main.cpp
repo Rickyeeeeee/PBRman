@@ -19,6 +19,7 @@ void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool
 int InitWindow();
 void InitDevice();
 void CreateSwapChainRenderTargets();
+void CreateAssets();
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -53,6 +54,9 @@ nvrhi::TextureHandle swapChainBufferHandles[FrameCount];
 nvrhi::RefCountPtr<ID3D12Fence> frameFence;
 HANDLE frameFenceEvent[FrameCount];
 nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
+
+// Application objects
+nvrhi::CommandListHandle commandList;
 
 // Vertex structure
 struct Vertex {
@@ -91,11 +95,21 @@ int main() {
 
         glfwPollEvents();
 
+        // Begin frame
         // Wait for previous frame
         // auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
         // WaitForSingleObject(frameFenceEvent[backBufferIndex], INFINITE);
 
         // Rendering
+        // commandList->open();
+        // commandList->close();
+        // nvrhiDevice->executeCommandList(commandList);
+
+        // End frame
+        // Present
+        // backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+        // ThrowIfFailed(swapChain->Present(1, 0));
+
     }
 
     // Cleanup
@@ -184,6 +198,11 @@ void CreateSwapChainRenderTargets()
             nvrhi::FramebufferDesc().addColorAttachment(swapChainBufferHandles[n])
         );
     }
+}
+
+void CreateAssets()
+{
+    commandList = nvrhiDevice->createCommandList();
 }
 
 int InitWindow()
