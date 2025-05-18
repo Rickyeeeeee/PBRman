@@ -19,6 +19,7 @@ target_link_libraries(PBRman
     dxgi
     glm::glm
     imgui
+    d3dcompiler
 )
 
 target_include_directories(PBRman PRIVATE

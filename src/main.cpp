@@ -18,9 +18,8 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
-#include "core/imgui_impl_dx12.h"
-#include "core/imgui_impl_win32.h"
-#include "core/imgui_allocator.h"
+#include "core/imgui_nvrhi.h"
+#include "backends/imgui_impl_glfw.h"
 
 void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
 int InitWindow();
@@ -55,8 +54,6 @@ nvrhi::RefCountPtr<ID3D12Device> device;
 nvrhi::RefCountPtr<IDXGISwapChain3> swapChain;
 nvrhi::RefCountPtr<ID3D12CommandQueue> commandQueue;
 nvrhi::DeviceHandle nvrhiDevice;
-nvrhi::RefCountPtr<ID3D12DescriptorHeap> imguiSRVHeap;
-static ImGuiDescriptorHeapAllocator imGuiDescriptorHeapAllocator;
 
 // Swapchain render targets
 nvrhi::RefCountPtr<ID3D12Resource> swapChainBuffers[FrameCount];
@@ -69,6 +66,9 @@ nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 
 // Application objects
 nvrhi::CommandListHandle commandList;
+
+// ImGui objects
+std::shared_ptr<ImGui_NVRHI> nvrhiImgui;
 
 // Vertex structure
 struct Vertex {
@@ -100,34 +100,91 @@ int main() {
     InitDevice();
     CreateSwapChainRenderTargets();
     CreateAssets();
-    
+    InitImgui();
+
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+   // Our state
+    bool show_demo_window = true;
+    bool show_another_window = false;
+
     // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
 
-        // Begin frame
-        // Wait for previous frame
+        // ImGui_ImplWin32_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+        if (show_demo_window)
+            ImGui::ShowDemoWindow(&show_demo_window);
+
+        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+        {
+            static float f = 0.0f;
+            static int counter = 0;
+
+            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            ImGui::Checkbox("Another Window", &show_another_window);
+
+            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+
+            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+                counter++;
+            ImGui::SameLine();
+            ImGui::Text("counter = %d", counter);
+
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::End();
+        }
+
+        // 3. Show another simple window.
+        if (show_another_window)
+        {
+            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+            ImGui::Text("Hello from another window!");
+            if (ImGui::Button("Close Me"))
+                show_another_window = false;
+                ImGui::End();
+        }
+        ImGui::Render();
+            
+        // Get the current back buffer
         auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+        auto backFrameBuffer = swapChainFrameBufferHandles[backBufferIndex];
         
         // Rendering
         commandList->open();
-        
+        commandList->setResourceStatesForFramebuffer(backFrameBuffer);
         nvrhi::utils::ClearColorAttachment(
             commandList, 
-            swapChainFrameBufferHandles[backBufferIndex], 
+            backFrameBuffer, 
             0,
             nvrhi::Color(0.5f, 0.6f, 0.2f, 1.0f));
         commandList->close();
         nvrhiDevice->executeCommandList(commandList);
+
+        nvrhiImgui->render(backFrameBuffer);
+
+        // Update and Render additional Platform Windows
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
         
-        // End frame
-        // Present
+        // Present & Swap Buffers
         ThrowIfFailed(swapChain->Present(1, 0));
         frameFenceValue[backBufferIndex] = fenceValue++;
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), frameFenceValue[backBufferIndex]));
         backBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+        // Wait for the next back buffer to be ready
         if (frameFence->GetCompletedValue() < frameFenceValue[backBufferIndex])
         {
             ThrowIfFailed(frameFence->SetEventOnCompletion(frameFenceValue[backBufferIndex], frameFenceEvent));
@@ -235,18 +292,11 @@ void CreateSwapChainRenderTargets()
 void CreateAssets()
 {
     commandList = nvrhiDevice->createCommandList();
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        desc.NumDescriptors = 64;
-        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&imguiSRVHeap)));
-        imGuiDescriptorHeapAllocator.Create(device, imguiSRVHeap);
-    }
 }
 
 void InitImgui() 
 {
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -254,8 +304,8 @@ void InitImgui()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-    //io.ConfigViewportsNoAutoMerge = true;
-    //io.ConfigViewportsNoTaskBarIcon = true;
+    io.ConfigViewportsNoAutoMerge = true;
+    io.ConfigViewportsNoTaskBarIcon = true;
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -266,33 +316,22 @@ void InitImgui()
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 0.5f;
     }
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplWin32_Init(hwnd);
-
-    ImGui_ImplDX12_InitInfo init_info = {};
-    init_info.Device = device;
-    init_info.CommandQueue = commandQueue;
-    init_info.NumFramesInFlight = FrameCount;
-    init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
-    // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
-    // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
-    init_info.SrvDescriptorHeap = imguiSRVHeap;
-    init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) { return imGuiDescriptorHeapAllocator.Alloc(out_cpu_handle, out_gpu_handle); };
-    init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)            { return imGuiDescriptorHeapAllocator.Free(cpu_handle, gpu_handle); };
-    ImGui_ImplDX12_Init(&init_info);
+    ImGui_ImplGlfw_InitForOther(window, true);
+    nvrhiImgui = std::make_shared<ImGui_NVRHI>();
+    nvrhiImgui->init(nvrhiDevice);
+    nvrhiImgui->updateFontTexture();
 }
 
 int InitWindow()
 {
     // Windows init
     glfwInit();
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Disable OpenGL context
 
-    window = glfwCreateWindow(800, 600, "PBRMan", nullptr, nullptr);
+    window = glfwCreateWindow(Width, Height, "PBRMan", nullptr, nullptr);
 
     hwnd = glfwGetWin32Window(window);
 
