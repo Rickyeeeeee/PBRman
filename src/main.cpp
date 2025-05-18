@@ -1,9 +1,10 @@
 #include <iostream>
-#include <iostream>
+#include <vector>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
+
 #include <nvrhi/nvrhi.h>
 #include <nvrhi/d3d12.h>
 #include <nvrhi/validation.h>
@@ -13,14 +14,20 @@
 #include <wrl.h>
 #include <dxgi1_6.h>
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
+#define GLM_FORCE_INTRINSICS
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#include <glm/glm.hpp>
+
+#include "core/imgui_impl_dx12.h"
+#include "core/imgui_impl_win32.h"
+#include "core/imgui_allocator.h"
 
 void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
 int InitWindow();
 void InitDevice();
 void CreateSwapChainRenderTargets();
 void CreateAssets();
+void InitImgui();
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -48,6 +55,8 @@ nvrhi::RefCountPtr<ID3D12Device> device;
 nvrhi::RefCountPtr<IDXGISwapChain3> swapChain;
 nvrhi::RefCountPtr<ID3D12CommandQueue> commandQueue;
 nvrhi::DeviceHandle nvrhiDevice;
+nvrhi::RefCountPtr<ID3D12DescriptorHeap> imguiSRVHeap;
+static ImGuiDescriptorHeapAllocator imGuiDescriptorHeapAllocator;
 
 // Swapchain render targets
 nvrhi::RefCountPtr<ID3D12Resource> swapChainBuffers[FrameCount];
@@ -81,6 +90,9 @@ uint16_t cubeIndices[] = {
 
 int main() {
 
+    glm::vec4 color = { 0.5f, 0.6f, 0.2f, 1.0f };
+    std::cout << "is aligned: " << color.value << std::endl;
+
     auto retVal = InitWindow();
     if (retVal < 0)
         return -1;
@@ -100,6 +112,7 @@ int main() {
         
         // Rendering
         commandList->open();
+        
         nvrhi::utils::ClearColorAttachment(
             commandList, 
             swapChainFrameBufferHandles[backBufferIndex], 
@@ -118,7 +131,7 @@ int main() {
         if (frameFence->GetCompletedValue() < frameFenceValue[backBufferIndex])
         {
             ThrowIfFailed(frameFence->SetEventOnCompletion(frameFenceValue[backBufferIndex], frameFenceEvent));
-            WaitForSingleObject(frameFenceEvent, INFINITE);
+            ::WaitForSingleObject(frameFenceEvent, INFINITE);
         }
 
 
@@ -208,7 +221,10 @@ void CreateSwapChainRenderTargets()
         textureDesc.initialState = nvrhi::ResourceStates::Present;
         textureDesc.keepInitialState = true;
 
-        swapChainBufferHandles[n] = nvrhiDevice->createHandleForNativeTexture(nvrhi::ObjectTypes::D3D12_Resource, nvrhi::Object(swapChainBuffers[n]), textureDesc);
+        swapChainBufferHandles[n] = nvrhiDevice->createHandleForNativeTexture(
+            nvrhi::ObjectTypes::D3D12_Resource, 
+            nvrhi::Object(swapChainBuffers[n]), 
+            textureDesc);
 
         swapChainFrameBufferHandles[n] = nvrhiDevice->createFramebuffer(
             nvrhi::FramebufferDesc().addColorAttachment(swapChainBufferHandles[n])
@@ -219,6 +235,55 @@ void CreateSwapChainRenderTargets()
 void CreateAssets()
 {
     commandList = nvrhiDevice->createCommandList();
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = 64;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&imguiSRVHeap)));
+        imGuiDescriptorHeapAllocator.Create(device, imguiSRVHeap);
+    }
+}
+
+void InitImgui() 
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+    //io.ConfigViewportsNoAutoMerge = true;
+    //io.ConfigViewportsNoTaskBarIcon = true;
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplWin32_Init(hwnd);
+
+    ImGui_ImplDX12_InitInfo init_info = {};
+    init_info.Device = device;
+    init_info.CommandQueue = commandQueue;
+    init_info.NumFramesInFlight = FrameCount;
+    init_info.RTVFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    init_info.DSVFormat = DXGI_FORMAT_UNKNOWN;
+    // Allocating SRV descriptors (for textures) is up to the application, so we provide callbacks.
+    // (current version of the backend will only allocate one descriptor, future versions will need to allocate more)
+    init_info.SrvDescriptorHeap = imguiSRVHeap;
+    init_info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle) { return imGuiDescriptorHeapAllocator.Alloc(out_cpu_handle, out_gpu_handle); };
+    init_info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo*, D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_handle)            { return imGuiDescriptorHeapAllocator.Free(cpu_handle, gpu_handle); };
+    ImGui_ImplDX12_Init(&init_info);
 }
 
 int InitWindow()
