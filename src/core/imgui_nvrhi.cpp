@@ -101,7 +101,7 @@ bool ImGui_NVRHI::updateFontTexture()
     m_commandList->close();
     m_device->executeCommandList(m_commandList);
 
-    io.Fonts->TexID = fontTexture;
+    io.Fonts->TexID = (uint64_t)static_cast<void*>(fontTexture);
 
     return true;
 }
