@@ -37,8 +37,8 @@ void ThrowIfFailed(HRESULT hr) {
 }
 
 // Constants
-const UINT Width = 800;
-const UINT Height = 600;
+const UINT windowWidth = 800;
+const UINT windowHeight = 600;
 const UINT FrameCount = 2;
 
 bool enableNVRHIValidation = true;
@@ -116,6 +116,8 @@ int main() {
         // ImGui_ImplWin32_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        
 
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
@@ -242,8 +244,8 @@ void InitDevice()
 
     DXGI_SWAP_CHAIN_DESC1 scDesc = {};
     scDesc.BufferCount = FrameCount; // Use FrameCount
-    scDesc.Width = Width;
-    scDesc.Height = Height;
+    scDesc.Width = windowWidth;
+    scDesc.Height = windowHeight;
     scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -267,8 +269,8 @@ void CreateSwapChainRenderTargets()
         ThrowIfFailed(swapChain->GetBuffer(n, IID_PPV_ARGS(&swapChainBuffers[n])));
 
         nvrhi::TextureDesc textureDesc;
-        textureDesc.width = Width;
-        textureDesc.height = Height;
+        textureDesc.width = windowWidth;
+        textureDesc.height = windowHeight;
         textureDesc.sampleCount = 1;
         textureDesc.sampleQuality = 0;
         textureDesc.format = nvrhi::Format::RGBA8_UNORM;
@@ -328,10 +330,10 @@ int InitWindow()
 {
     // Windows init
     glfwInit();
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    // glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Disable OpenGL context
 
-    window = glfwCreateWindow(Width, Height, "PBRMan", nullptr, nullptr);
+    window = glfwCreateWindow(windowWidth, windowHeight, "PBRMan", nullptr, nullptr);
 
     hwnd = glfwGetWin32Window(window);
 
@@ -340,6 +342,46 @@ int InitWindow()
         std::cerr << "Failed to get window handle" << std::endl;
         return -1;
     }
+
+    glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
+        if (width > 0 && height > 0)
+        {
+            
+            nvrhiDevice->waitForIdle();
+            nvrhiDevice->runGarbageCollection();
+            SetEvent(frameFenceEvent);
+            
+            for (UINT n = 0; n < FrameCount; n++)
+            {
+                swapChainBuffers[n].Reset();
+                swapChainBufferHandles[n].Reset();
+                swapChainFrameBufferHandles[n].Reset();
+            }
+
+            DXGI_SWAP_CHAIN_DESC1 scDesc = {};
+            scDesc.BufferCount = FrameCount; // Use FrameCount
+            scDesc.Width = windowWidth;
+            scDesc.Height = windowHeight;
+            scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            scDesc.SampleDesc.Count = 1;
+
+            ThrowIfFailed(swapChain->ResizeBuffers(
+                FrameCount,
+                width,
+                height,
+                DXGI_FORMAT_R8G8B8A8_UNORM,
+                DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+            ));
+
+            CreateSwapChainRenderTargets();
+
+            nvrhiImgui->backbufferResizing();
+
+            ImGui::SetNextWindowSize(ImVec2((float)width, (float)height));
+        }
+    });
     return 1;
 }
 
