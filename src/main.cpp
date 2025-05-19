@@ -18,8 +18,8 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
-#include "core/imgui_nvrhi.h"
-#include "backends/imgui_impl_glfw.h"
+#include <core/imgui_nvrhi.h>
+#include <core/imgui_impl_glfw.h>
 
 void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
 int InitWindow();
