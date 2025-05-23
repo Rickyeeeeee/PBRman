@@ -27,6 +27,7 @@ void InitDevice();
 void CreateSwapChainRenderTargets();
 void CreateAssets();
 void InitImgui();
+void WaitForFenceValue(nvrhi::RefCountPtr<ID3D12Fence> fence, uint64_t value, HANDLE eventHandle);
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -59,8 +60,8 @@ nvrhi::DeviceHandle nvrhiDevice;
 nvrhi::RefCountPtr<ID3D12Resource> swapChainBuffers[FrameCount];
 nvrhi::TextureHandle swapChainBufferHandles[FrameCount];
 nvrhi::RefCountPtr<ID3D12Fence> frameFence;
-uint32_t frameFenceValue[FrameCount] = { 0 };
-uint32_t fenceValue = 0;
+uint64_t frameFenceValue[FrameCount] = { 0 };
+uint64_t fenceValue = 0;
 HANDLE frameFenceEvent;
 nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 
@@ -106,7 +107,7 @@ int main() {
 
    // Our state
     bool show_demo_window = true;
-    bool show_another_window = false;
+    bool show_another_window = true;
 
     // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
@@ -181,17 +182,24 @@ int main() {
         
         // Present & Swap Buffers
         ThrowIfFailed(swapChain->Present(1, 0));
-        frameFenceValue[backBufferIndex] = fenceValue++;
-        ThrowIfFailed(commandQueue->Signal(frameFence.Get(), frameFenceValue[backBufferIndex]));
+
+
+        auto fenceValueForSignal = ++fenceValue;
+        frameFenceValue[backBufferIndex] = fenceValueForSignal;
+        ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));
+
+
         backBufferIndex = swapChain->GetCurrentBackBufferIndex();
 
+
         // Wait for the next back buffer to be ready
-        if (frameFence->GetCompletedValue() < frameFenceValue[backBufferIndex])
+        auto nextFrameFenceValue = frameFenceValue[backBufferIndex];
+        if (frameFence->GetCompletedValue() < nextFrameFenceValue)
         {
-            ThrowIfFailed(frameFence->SetEventOnCompletion(frameFenceValue[backBufferIndex], frameFenceEvent));
+            // Wait until the GPU has completed commands up to this fence point
+            ThrowIfFailed(frameFence->SetEventOnCompletion(nextFrameFenceValue, frameFenceEvent));
             ::WaitForSingleObject(frameFenceEvent, INFINITE);
         }
-
 
     }
 
@@ -325,6 +333,16 @@ void InitImgui()
     nvrhiImgui->updateFontTexture();
 }
 
+void WaitForFenceValue(nvrhi::RefCountPtr<ID3D12Fence> fence, uint64_t value, HANDLE eventHandle)
+{
+    if (fence->GetCompletedValue() < value)
+    {
+        // Wait until the GPU has completed commands up to this fence point
+        ThrowIfFailed(fence->SetEventOnCompletion(value, eventHandle));
+        ::WaitForSingleObject(eventHandle, INFINITE);
+    }
+}
+
 int InitWindow()
 {
     // Windows init
@@ -345,42 +363,45 @@ int InitWindow()
     glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
         if (width > 0 && height > 0)
         {
-            // 
-            // TODO: Wait for all the frames in flight to finish
+            windowWidth = width;
+            windowHeight = height;
+
+            auto fenceValueForSignal = ++fenceValue;
+            ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));
+            WaitForFenceValue(frameFence, fenceValueForSignal, frameFenceEvent);
+
+            for (uint32_t i = 0; i < FrameCount; ++i)
+            {
+                WaitForFenceValue(frameFence, frameFenceValue[i], frameFenceEvent);
+            }
+
+            auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+            for (UINT n = 0; n < FrameCount; n++)
+            {
+                swapChainFrameBufferHandles[n].Reset();
+                swapChainBufferHandles[n].Reset();
+                swapChainBuffers[n].Reset();
+                frameFenceValue[n] = frameFenceValue[backBufferIndex];
+            }
 
             nvrhiDevice->waitForIdle();
             nvrhiDevice->runGarbageCollection();
-            SetEvent(frameFenceEvent);
-            
-            for (UINT n = 0; n < FrameCount; n++)
-            {
-                swapChainBuffers[n].Reset();
-                swapChainBufferHandles[n].Reset();
-                swapChainFrameBufferHandles[n].Reset();
-            }
 
             DXGI_SWAP_CHAIN_DESC1 scDesc = {};
-            scDesc.BufferCount = FrameCount; // Use FrameCount
-            scDesc.Width = windowWidth;
-            scDesc.Height = windowHeight;
-            scDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            scDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-            scDesc.SampleDesc.Count = 1;
-
+            ThrowIfFailed(swapChain->GetDesc1(&scDesc));
             ThrowIfFailed(swapChain->ResizeBuffers(
-                FrameCount,
-                width,
-                height,
-                DXGI_FORMAT_R8G8B8A8_UNORM,
-                DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH
+                FrameCount, 
+                windowWidth, 
+                windowHeight,
+                scDesc.Format,
+                scDesc.Flags
             ));
 
             CreateSwapChainRenderTargets();
-
+            
             nvrhiImgui->backbufferResizing();
 
-            ImGui::SetNextWindowSize(ImVec2((float)width, (float)height));
+            ImGui::SetNextWindowSize(ImVec2((float)windowWidth, (float)windowHeight));
         }
     });
     return 1;
