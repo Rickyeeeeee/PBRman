@@ -164,12 +164,8 @@ int main() {
         if (show_image)
         {
             ImGui::Begin("Another Window", &show_image);
-            D3D12_GPU_DESCRIPTOR_HANDLE* texture = image->GetTexture()->getNativeView(
-                nvrhi::ObjectTypes::D3D12_ShaderResourceViewGpuDescripror,
-                nvrhi::Format::RGBA8_UNORM,
-                nvrhi::AllSubresources,
-                nvrhi::TextureDimension::Texture2D);
-            ImGui::Image((ImTextureID)texture->ptr, ImVec2(400, 300));
+            auto object = image->GetTexture().Get();
+            ImGui::Image((ImTextureID)object, ImVec2(400, 300));
             ImGui::End();
         }
         ImGui::Render();
@@ -313,7 +309,10 @@ void CreateSwapChainRenderTargets()
         commandList = nvrhiDevice->createCommandList();
         
         imageData = new uint32_t[viewportWidth * viewportHeight];
-        memset(imageData, 0xffff00ff, viewportWidth * viewportHeight * sizeof(uint32_t));
+        for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
+        {
+            imageData[i] = 0xFF00FFFF; // ABGR
+        }
         
 
         image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);

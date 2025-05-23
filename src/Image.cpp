@@ -28,9 +28,10 @@ void Image::SetData(const void* data)
     m_CommandList->open();
     if (data)
     {
-        m_CommandList->beginTrackingTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
+        m_CommandList->beginTrackingTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::ShaderResource);
         m_CommandList->writeTexture(m_Texture, 0, 0, data, m_Width * 4);
-        m_CommandList->setPermanentTextureState(m_Texture, nvrhi::ResourceStates::ShaderResource);
+        // m_CommandList->setPermanentTextureState(m_Texture, nvrhi::ResourceStates::ShaderResource);
+        m_CommandList->setTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::ShaderResource);
         m_CommandList->commitBarriers();
     }
     m_CommandList->close();
