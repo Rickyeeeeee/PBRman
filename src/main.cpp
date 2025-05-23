@@ -21,6 +21,19 @@
 #include <core/imgui_nvrhi.h>
 #include <core/imgui_impl_glfw.h>
 
+#include "Image.h"
+
+// Vertex structure
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;
+};
+
+struct QuadVertex {
+    glm::vec3 position;
+    glm::vec2 texCoord;
+};
+
 void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter, bool requestHighPerformanceAdapter = true);
 int InitWindow();
 void InitDevice();
@@ -68,14 +81,16 @@ nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 // Application objects
 nvrhi::CommandListHandle commandList;
 
+// Camera
+uint32_t viewportWidth = 400;
+uint32_t viewportHeight = 300;
+
+// Image
+std::shared_ptr<Image> image;
+uint32_t* imageData = nullptr;
+
 // ImGui objects
 std::shared_ptr<ImGui_NVRHI> nvrhiImgui;
-
-// Vertex structure
-struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;
-};
 
 // Cube data
 Vertex cubeVertices[] = {
@@ -106,8 +121,8 @@ int main() {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
    // Our state
-    bool show_demo_window = true;
-    bool show_another_window = true;
+    bool show_demo_window = false;
+    bool show_image = true;
 
     // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
@@ -132,7 +147,7 @@ int main() {
 
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
+            ImGui::Checkbox("Another Window", &show_image);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
 
@@ -146,13 +161,16 @@ int main() {
         }
 
         // 3. Show another simple window.
-        if (show_another_window)
+        if (show_image)
         {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-                ImGui::End();
+            ImGui::Begin("Another Window", &show_image);
+            D3D12_GPU_DESCRIPTOR_HANDLE* texture = image->GetTexture()->getNativeView(
+                nvrhi::ObjectTypes::D3D12_ShaderResourceViewGpuDescripror,
+                nvrhi::Format::RGBA8_UNORM,
+                nvrhi::AllSubresources,
+                nvrhi::TextureDimension::Texture2D);
+            ImGui::Image((ImTextureID)texture->ptr, ImVec2(400, 300));
+            ImGui::End();
         }
         ImGui::Render();
             
@@ -167,7 +185,7 @@ int main() {
             commandList, 
             backFrameBuffer, 
             0,
-            nvrhi::Color(0.5f, 0.6f, 0.2f, 1.0f));
+            nvrhi::Color(0.1f, 0.1f, 0.1f, 0.5f));
         commandList->close();
         nvrhiDevice->executeCommandList(commandList);
 
@@ -190,16 +208,7 @@ int main() {
 
 
         backBufferIndex = swapChain->GetCurrentBackBufferIndex();
-
-
-        // Wait for the next back buffer to be ready
-        auto nextFrameFenceValue = frameFenceValue[backBufferIndex];
-        if (frameFence->GetCompletedValue() < nextFrameFenceValue)
-        {
-            // Wait until the GPU has completed commands up to this fence point
-            ThrowIfFailed(frameFence->SetEventOnCompletion(nextFrameFenceValue, frameFenceEvent));
-            ::WaitForSingleObject(frameFenceEvent, INFINITE);
-        }
+        WaitForFenceValue(frameFence, frameFenceValue[backBufferIndex], frameFenceEvent);
 
     }
 
@@ -286,25 +295,38 @@ void CreateSwapChainRenderTargets()
         textureDesc.isUAV = false;
         textureDesc.initialState = nvrhi::ResourceStates::Present;
         textureDesc.keepInitialState = true;
-
+        
         swapChainBufferHandles[n] = nvrhiDevice->createHandleForNativeTexture(
             nvrhi::ObjectTypes::D3D12_Resource, 
             nvrhi::Object(swapChainBuffers[n]), 
             textureDesc);
-
-        swapChainFrameBufferHandles[n] = nvrhiDevice->createFramebuffer(
-            nvrhi::FramebufferDesc().addColorAttachment(swapChainBufferHandles[n])
-        );
+            
+            swapChainFrameBufferHandles[n] = nvrhiDevice->createFramebuffer(
+                nvrhi::FramebufferDesc().addColorAttachment(swapChainBufferHandles[n])
+            );
+        }
     }
-}
+    
+    void CreateAssets()
+    {
+        // Create resources
+        commandList = nvrhiDevice->createCommandList();
+        
+        imageData = new uint32_t[viewportWidth * viewportHeight];
+        memset(imageData, 0xffff00ff, viewportWidth * viewportHeight * sizeof(uint32_t));
+        
 
-void CreateAssets()
-{
-    commandList = nvrhiDevice->createCommandList();
-}
+        image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);
+        image->SetData(imageData);
 
-void InitImgui() 
-{
+        auto fenceValueForSignal = ++fenceValue;
+        ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));
+        WaitForFenceValue(frameFence, fenceValueForSignal, frameFenceEvent);
+
+    }
+    
+    void InitImgui() 
+    {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
