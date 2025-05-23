@@ -37,8 +37,8 @@ void ThrowIfFailed(HRESULT hr) {
 }
 
 // Constants
-const UINT windowWidth = 800;
-const UINT windowHeight = 600;
+UINT windowWidth = 800;
+UINT windowHeight = 600;
 const UINT FrameCount = 2;
 
 bool enableNVRHIValidation = true;
@@ -116,9 +116,8 @@ int main() {
         // ImGui_ImplWin32_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
         
-
+        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
             ImGui::ShowDemoWindow(&show_demo_window);
@@ -346,7 +345,9 @@ int InitWindow()
     glfwSetWindowSizeCallback(window, [](GLFWwindow* window, int width, int height) {
         if (width > 0 && height > 0)
         {
-            
+            // 
+            // TODO: Wait for all the frames in flight to finish
+
             nvrhiDevice->waitForIdle();
             nvrhiDevice->runGarbageCollection();
             SetEvent(frameFenceEvent);
