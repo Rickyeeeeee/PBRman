@@ -201,26 +201,22 @@ int main() {
             //     ImGuiWindowFlags_NoTitleBar;
             ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
             ImGui::Begin("Another Window", &show_image);
-            if (ImGui::IsWindowDocked()) {
-                
-                // ImGuiDockNode* node = ImGui::node
-                // if (node)
-                //     node->WantHiddenTabBar = true;
-            }
             auto object = image->GetTexture().Get();
-            auto imguiWindowWidth = ImGui::GetWindowWidth();
-            auto imguiWindowHeight = ImGui::GetWindowHeight();
+            auto imguiWindowWidth = ImGui::GetContentRegionAvail().x;
+            auto imguiWindowHeight = ImGui::GetContentRegionAvail().y;
             auto imguiAspect = imguiWindowHeight / imguiWindowWidth;
             float width, height;
             if (imguiAspect < aspectRatio)
             {
                 height = imguiWindowHeight;
                 width = imguiWindowHeight / aspectRatio;
+                ImGui::SetCursorPosX((imguiWindowWidth - width) * 0.5f);
             }
             else
             {
                 width = imguiWindowWidth;
                 height = imguiWindowWidth * aspectRatio;
+                ImGui::SetCursorPosY((imguiWindowHeight - height) * 0.5f);
             }
             ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
             ImGui::End();
