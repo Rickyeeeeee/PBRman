@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 file(GLOB CPP_SOURCE 
     *.cpp
     core/*.cpp
+    RayTracing/*.cpp
 )
 
 add_executable(PBRman ${CPP_SOURCE})

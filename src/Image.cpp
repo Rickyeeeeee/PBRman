@@ -13,7 +13,8 @@ Image::Image(uint32_t width, uint32_t height, nvrhi::DeviceHandle device, nvrhi:
     textureDesc.debugName = "Image Texture";
     textureDesc.isRenderTarget = false;
     textureDesc.isUAV = false;
-    textureDesc.initialState = nvrhi::ResourceStates::ShaderResource;
+    textureDesc.initialState = nvrhi::ResourceStates::Common;
+    textureDesc.keepInitialState = true;
 
     m_Texture = device->createTexture(textureDesc);
 }
@@ -28,10 +29,9 @@ void Image::SetData(const void* data)
     m_CommandList->open();
     if (data)
     {
-        m_CommandList->beginTrackingTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::ShaderResource);
+        m_CommandList->beginTrackingTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
         m_CommandList->writeTexture(m_Texture, 0, 0, data, m_Width * 4);
-        // m_CommandList->setPermanentTextureState(m_Texture, nvrhi::ResourceStates::ShaderResource);
-        m_CommandList->setTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::ShaderResource);
+        m_CommandList->setTextureState(m_Texture, nvrhi::AllSubresources, nvrhi::ResourceStates::Common);
         m_CommandList->commitBarriers();
     }
     m_CommandList->close();

@@ -14,14 +14,12 @@
 #include <wrl.h>
 #include <dxgi1_6.h>
 
-#define GLM_FORCE_INTRINSICS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
-
 #include <core/imgui_nvrhi.h>
 #include <core/imgui_impl_glfw.h>
 
 #include "Image.h"
+#include "RayTracing/Camera.h"
+#include "RayTracing/Shape.h"
 
 // Vertex structure
 struct Vertex {
@@ -82,8 +80,12 @@ nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 nvrhi::CommandListHandle commandList;
 
 // Camera
-uint32_t viewportWidth = 400;
-uint32_t viewportHeight = 300;
+std::shared_ptr<Camera> camera;
+constexpr uint32_t viewportWidth = 800;
+constexpr uint32_t viewportHeight = 600;
+constexpr float aspectRatio = (float)viewportHeight / (float)viewportWidth;
+
+std::shared_ptr<Shape> circle;
 
 // Image
 std::shared_ptr<Image> image;
@@ -129,10 +131,42 @@ int main() {
 
         glfwPollEvents();
 
+        for (uint32_t i = 0; i < viewportWidth; i++) {
+            for (uint32_t j = 0; j < viewportHeight; j++) {
+                glm::vec3 color = { (float)i / viewportWidth, (float)j / viewportHeight, 0.5f };
+
+                auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
+                auto intersect = circle->Intersect(ray);
+
+                if (intersect.HasIntersection)
+                {
+                    color.r = 1.0f;
+                    color.g = 0.0f;
+                    color.b = 0.0f;
+
+                    color *= glm::clamp(glm::dot(intersect.Normal, glm::vec3{ 1.0f, 1.0f, 1.0f }), 0.0f, 1.0f);
+                }
+
+                // Format is 0xAABBGGRR
+                uint32_t colorValue = 
+                    (uint32_t)(color.r * 255.0f) << 24 | 
+                    (uint32_t) (color.g * 255.0f) << 16 | 
+                    (uint32_t) (color.b * 255.0f) << 8 | 
+                    (uint32_t) 0xFF;
+                imageData[i + j * viewportWidth] = colorValue;
+            }
+        }
+        
+        image->SetData(imageData);
+        auto imageUploadFenceValue = ++fenceValue;
+        ThrowIfFailed(commandQueue->Signal(frameFence.Get(), imageUploadFenceValue));
+        WaitForFenceValue(frameFence, imageUploadFenceValue, frameFenceEvent);
+
         // ImGui_ImplWin32_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         
+        ImGuiDockNodeFlags dockNodeFlags = ImGuiDockNodeFlags_AutoHideTabBar;
         ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (show_demo_window)
@@ -163,10 +197,34 @@ int main() {
         // 3. Show another simple window.
         if (show_image)
         {
+            // ImGuiWindowFlags viewportFlags = 
+            //     ImGuiWindowFlags_NoTitleBar;
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
             ImGui::Begin("Another Window", &show_image);
+            if (ImGui::IsWindowDocked()) {
+                
+                // ImGuiDockNode* node = ImGui::node
+                // if (node)
+                //     node->WantHiddenTabBar = true;
+            }
             auto object = image->GetTexture().Get();
-            ImGui::Image((ImTextureID)object, ImVec2(400, 300));
+            auto imguiWindowWidth = ImGui::GetWindowWidth();
+            auto imguiWindowHeight = ImGui::GetWindowHeight();
+            auto imguiAspect = imguiWindowHeight / imguiWindowWidth;
+            float width, height;
+            if (imguiAspect < aspectRatio)
+            {
+                height = imguiWindowHeight;
+                width = imguiWindowHeight / aspectRatio;
+            }
+            else
+            {
+                width = imguiWindowWidth;
+                height = imguiWindowWidth * aspectRatio;
+            }
+            ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
             ImGui::End();
+            ImGui::PopStyleVar();
         }
         ImGui::Render();
             
@@ -195,7 +253,7 @@ int main() {
         }
         
         // Present & Swap Buffers
-        ThrowIfFailed(swapChain->Present(1, 0));
+        ThrowIfFailed(swapChain->Present(0, 0));
 
 
         auto fenceValueForSignal = ++fenceValue;
@@ -314,13 +372,24 @@ void CreateSwapChainRenderTargets()
             imageData[i] = 0xFF00FFFF; // ABGR
         }
         
-
         image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);
         image->SetData(imageData);
 
         auto fenceValueForSignal = ++fenceValue;
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));
         WaitForFenceValue(frameFence, fenceValueForSignal, frameFenceEvent);
+
+        auto center = glm::vec3{ 0.0f, 0.0f, 10.0f };
+        auto focus = glm::vec3{ 0.0f };
+        camera = std::make_shared<Camera>(
+            center,
+            glm::normalize(focus - center),
+            viewportWidth,
+            viewportHeight,
+            200.0f
+        );
+
+        circle = std::make_shared<Circle>();
 
     }
     
