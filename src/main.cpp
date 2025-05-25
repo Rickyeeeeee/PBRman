@@ -197,10 +197,8 @@ int main() {
         // 3. Show another simple window.
         if (show_image)
         {
-            // ImGuiWindowFlags viewportFlags = 
-            //     ImGuiWindowFlags_NoTitleBar;
             ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-            ImGui::Begin("Another Window", &show_image);
+            ImGui::Begin("Viewport", &show_image);
             auto object = image->GetTexture().Get();
             auto imguiWindowWidth = ImGui::GetContentRegionAvail().x;
             auto imguiWindowHeight = ImGui::GetContentRegionAvail().y;
