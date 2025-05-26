@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -126,8 +127,11 @@ int main() {
     bool show_demo_window = false;
     bool show_image = true;
 
-    // TODO: Haven't implemented resizing yet
     while(!glfwWindowShouldClose(window)) {
+        static std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
+        auto startTime = std::chrono::high_resolution_clock::now();
+        auto deltaTime = std::chrono::duration<float>(startTime - lastTime).count();
+        lastTime = startTime;
 
         glfwPollEvents();
 
@@ -161,6 +165,8 @@ int main() {
         auto imageUploadFenceValue = ++fenceValue;
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), imageUploadFenceValue));
         WaitForFenceValue(frameFence, imageUploadFenceValue, frameFenceEvent);
+
+        camera->Update(deltaTime);
 
         // ImGui_ImplWin32_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -217,6 +223,35 @@ int main() {
                 ImGui::SetCursorPosY((imguiWindowHeight - height) * 0.5f);
             }
             ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+
+            bool hovering = ImGui::IsItemHovered();
+            bool leftMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+            bool rightMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right);
+            // mouse scroll
+            if (hovering && io.MouseWheel != 0.0f)
+            {
+                float speed = 0.8f; // Adjust zoom speed as needed
+                camera->Zoom(io.MouseWheel * speed);
+            }
+
+            if (hovering && leftMousedragging)
+            {
+                ImVec2 delta = io.MouseDelta;
+                float speed = 150.0f; // Adjust speed as needed
+                camera->Rotate(
+                    -delta.y * speed / width, 
+                    -delta.x * speed / height);
+            }
+
+            if (hovering && rightMousedragging)
+            {
+                ImVec2 delta = io.MouseDelta;
+                float speed = 10.0f; // Adjust speed as needed
+                camera->Translate(
+                    -delta.x * speed / width, 
+                    delta.y * speed / height);
+            }
+
             ImGui::End();
             ImGui::PopStyleVar();
         }
@@ -380,7 +415,7 @@ void CreateSwapChainRenderTargets()
             glm::normalize(focus - center),
             viewportWidth,
             viewportHeight,
-            200.0f
+            100.0f
         );
 
         circle = std::make_shared<Circle>();
