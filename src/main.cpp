@@ -137,8 +137,6 @@ int main() {
 
         for (uint32_t i = 0; i < viewportWidth; i++) {
             for (uint32_t j = 0; j < viewportHeight; j++) {
-                glm::vec3 color = { (float)i / viewportWidth, (float)j / viewportHeight, 0.5f };
-
                 auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
                 auto intersect = circle->Intersect(ray);
 
@@ -150,10 +148,16 @@ int main() {
 
                     color *= glm::clamp(glm::dot(intersect.Normal, glm::vec3{ 1.0f, 1.0f, 1.0f }), 0.0f, 1.0f);
                 }
+                else
+                {
+                    color.r = 0.1f;
+                    color.g = 0.1f;
+                    color.b = 0.1f;
+                }
 
                 // Format is 0xAABBGGRR
                 uint32_t colorValue = 
-                    (uint32_t)(color.r * 255.0f) << 24 | 
+                    (uint32_t) (color.r * 255.0f) << 24 | 
                     (uint32_t) (color.g * 255.0f) << 16 | 
                     (uint32_t) (color.b * 255.0f) << 8 | 
                     (uint32_t) 0xFF;
