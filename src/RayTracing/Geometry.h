@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Math.h"
+#include "core/Core.h"
 
 struct Ray
 {
@@ -71,6 +71,7 @@ public:
     void SetTranslation(const glm::vec3& trans)
     {
         m_Mat[3] = glm::vec4{ trans, 1.0f};
+        UpdateInv();
     }
 
     const glm::mat4& GetMat() const
@@ -87,7 +88,7 @@ private:
     void SetMat3(const glm::mat3& mat3)
     {
         for (int i = 0; i < 3; i++)
-        m_Mat[i] = glm::vec4(mat3[i], m_Mat[i].w);
+            m_Mat[i] = glm::vec4(mat3[i], m_Mat[i].w);
     }
 
     void UpdateInv()

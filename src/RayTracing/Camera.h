@@ -40,7 +40,10 @@ public:
         {
             float smoothedZoom = m_ZoomVelocity * deltaTime * m_Smoothness;
             m_Position += m_Front * smoothedZoom;
-            m_ZoomVelocity *= std::exp(-m_Smoothness * deltaTime);
+            if (m_EnableSmoothing)
+                m_ZoomVelocity *= std::exp(-m_Smoothness * deltaTime);
+            else
+                m_ZoomVelocity = 0.0f;
         }
 
         // --- Translation ---
@@ -48,7 +51,10 @@ public:
         {
             glm::vec2 smoothedTranslation = m_TranslationVelocity * deltaTime * m_Smoothness;
             m_Position += m_Right * smoothedTranslation.x + m_Up * smoothedTranslation.y;
-            m_TranslationVelocity *= std::exp(-m_Smoothness * deltaTime);
+            if(m_EnableSmoothing)
+                m_TranslationVelocity *= std::exp(-m_Smoothness * deltaTime);
+            else
+                m_TranslationVelocity = { 0.0f, 0.0f };
         }
 
          // --- Rotation ---
@@ -66,7 +72,10 @@ public:
             m_Right = glm::normalize(glm::cross(m_Front, m_YAxis));
             m_Up = glm::normalize(glm::cross(m_Right, m_Front));
 
-            m_RotationVelocity *= std::exp(-m_Smoothness * deltaTime);
+            if (m_EnableSmoothing)
+                m_RotationVelocity *= std::exp(-m_Smoothness * deltaTime);
+            else
+                m_RotationVelocity = { 0.0f, 0.0f };
         }
     }
 
@@ -119,6 +128,7 @@ private:
     float m_Height;
     float m_Focal;
 
+    bool m_EnableSmoothing = false;
     float m_ZoomVelocity = 0.0f;
     float m_CurrentOffset = 0.0f;
     float m_Smoothness = 8.0f; // Higher = snappier, lower = smoother

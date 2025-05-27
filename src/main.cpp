@@ -20,7 +20,8 @@
 
 #include "Image.h"
 #include "RayTracing/Camera.h"
-#include "RayTracing/Shape.h"
+#include "RayTracing/Scene.h"
+#include "RayTracing/RayRenderer.h"
 
 // Vertex structure
 struct Vertex {
@@ -82,11 +83,12 @@ nvrhi::CommandListHandle commandList;
 
 // Camera
 std::shared_ptr<Camera> camera;
-constexpr uint32_t viewportWidth = 800;
-constexpr uint32_t viewportHeight = 600;
+constexpr uint32_t viewportWidth = 400;
+constexpr uint32_t viewportHeight = 300;
 constexpr float aspectRatio = (float)viewportHeight / (float)viewportWidth;
 
-std::shared_ptr<Shape> circle;
+// std::shared_ptr<Shape> circle;
+std::shared_ptr<Scene> scene;
 
 // Image
 std::shared_ptr<Image> image;
@@ -126,6 +128,9 @@ int main() {
    // Our state
     bool show_demo_window = false;
     bool show_image = true;
+    int accumulateCount = 0;
+
+    RayRenderer renderer;
 
     while(!glfwWindowShouldClose(window)) {
         static std::chrono::high_resolution_clock::time_point lastTime = std::chrono::high_resolution_clock::now();
@@ -135,35 +140,8 @@ int main() {
 
         glfwPollEvents();
 
-        for (uint32_t i = 0; i < viewportWidth; i++) {
-            for (uint32_t j = 0; j < viewportHeight; j++) {
-                auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
-                auto intersect = circle->Intersect(ray);
-
-                if (intersect.HasIntersection)
-                {
-                    color.r = 1.0f;
-                    color.g = 0.0f;
-                    color.b = 0.0f;
-
-                    color *= glm::clamp(glm::dot(intersect.Normal, glm::vec3{ 1.0f, 1.0f, 1.0f }), 0.0f, 1.0f);
-                }
-                else
-                {
-                    color.r = 0.1f;
-                    color.g = 0.1f;
-                    color.b = 0.1f;
-                }
-
-                // Format is 0xAABBGGRR
-                uint32_t colorValue = 
-                    (uint32_t) (color.r * 255.0f) << 24 | 
-                    (uint32_t) (color.g * 255.0f) << 16 | 
-                    (uint32_t) (color.b * 255.0f) << 8 | 
-                    (uint32_t) 0xFF;
-                imageData[i + j * viewportWidth] = colorValue;
-            }
-        }
+        accumulateCount++;
+        renderer.Render(imageData, scene, camera, accumulateCount);
         
         image->SetData(imageData);
         auto imageUploadFenceValue = ++fenceValue;
@@ -204,6 +182,7 @@ int main() {
             ImGui::End();
         }
 
+        bool cameraUpdated = false;
         // 3. Show another simple window.
         if (show_image)
         {
@@ -236,6 +215,7 @@ int main() {
             {
                 float speed = 0.8f; // Adjust zoom speed as needed
                 camera->Zoom(io.MouseWheel * speed);
+                cameraUpdated = true;
             }
 
             if (hovering && leftMousedragging)
@@ -245,6 +225,7 @@ int main() {
                 camera->Rotate(
                     -delta.y * speed / width, 
                     -delta.x * speed / height);
+                cameraUpdated = true;
             }
 
             if (hovering && rightMousedragging)
@@ -254,10 +235,19 @@ int main() {
                 camera->Translate(
                     -delta.x * speed / width, 
                     delta.y * speed / height);
+                cameraUpdated = true;
             }
 
             ImGui::End();
             ImGui::PopStyleVar();
+        }
+        if (cameraUpdated)
+        {
+            accumulateCount = 0;
+            for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
+            {
+                imageData[i] = 0xFF000000; // ABGR
+            }
         }
         ImGui::Render();
             
@@ -402,7 +392,7 @@ void CreateSwapChainRenderTargets()
         imageData = new uint32_t[viewportWidth * viewportHeight];
         for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
         {
-            imageData[i] = 0xFF00FFFF; // ABGR
+            imageData[i] = 0xFF000000; // ABGR
         }
         
         image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);
@@ -422,8 +412,7 @@ void CreateSwapChainRenderTargets()
             100.0f
         );
 
-        circle = std::make_shared<Circle>();
-
+        scene = std::make_shared<Scene>();
     }
     
     void InitImgui() 
