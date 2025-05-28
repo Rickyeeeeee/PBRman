@@ -4,6 +4,11 @@
 
 #include "Camera.h"
 
+struct Tile
+{
+    uint32_t x0, y0, x1, y1;
+};
+
 class RayRenderer
 {
 public:
@@ -22,4 +27,5 @@ private:
     glm::vec3 m_SkyLightDirection = glm::normalize(glm::vec3{ 1.0f, 1.0f, 1.0f });
 
     const int m_Depth = 10;
+    const uint32_t m_tileSize = 32;
 };

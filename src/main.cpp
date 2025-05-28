@@ -83,8 +83,8 @@ nvrhi::CommandListHandle commandList;
 
 // Camera
 std::shared_ptr<Camera> camera;
-constexpr uint32_t viewportWidth = 400;
-constexpr uint32_t viewportHeight = 300;
+constexpr uint32_t viewportWidth = 800;
+constexpr uint32_t viewportHeight = 600;
 constexpr float aspectRatio = (float)viewportHeight / (float)viewportWidth;
 
 // std::shared_ptr<Shape> circle;
@@ -167,7 +167,7 @@ int main() {
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), imageUploadFenceValue));
         WaitForFenceValue(frameFence, imageUploadFenceValue, frameFenceEvent);
 
-        camera->Update(deltaTime);
+        camera->Update(deltaTime * 5.0f);
 
         // ImGui_ImplWin32_NewFrame();
         ImGui_ImplGlfw_NewFrame();

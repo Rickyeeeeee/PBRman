@@ -1,6 +1,5 @@
 #include "RayRenderer.h"
-
-const float pi = 3.1415926535897932385;
+#include <future>
 
 void RayRenderer::Render(float* imageBuffer, std::shared_ptr<Scene> scene, std::shared_ptr<Camera> camera, int accumulateCount)
 {
@@ -8,28 +7,59 @@ void RayRenderer::Render(float* imageBuffer, std::shared_ptr<Scene> scene, std::
     m_Scene = scene;
     m_Camera = camera;
 
-    float count = (float)accumulateCount;
+    std::vector<Tile> tiles;
 
-    for (uint32_t i = 0; i < camera->GetWidth(); i++) {
-        for (uint32_t j = 0; j < camera->GetHeight(); j++) {
-            
-            auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
-            
-            auto L = TraceRay(ray, m_Depth);
-            // Format is 0xAABBGGRR
-            glm::vec3 lastColor;
-            auto pColor = &imageBuffer[(i + j * (uint32_t)camera->GetWidth()) * 3];
-            lastColor.r = pColor[0];
-            lastColor.g = pColor[1];
-            lastColor.b = pColor[2];
+    auto width = (uint32_t)camera->GetWidth();
+    auto height = (uint32_t)camera->GetHeight();
 
-            auto color = (lastColor * (count - 1) / count) + (L / count);
-
-            pColor[0] = color.r;
-            pColor[1] = color.g;
-            pColor[2] = color.b;
+    for (uint32_t i = 0; i < width; i += m_tileSize)
+    {
+        for (uint32_t j = 0; j < height; j += m_tileSize)
+        {
+            tiles.push_back(Tile{
+                i, j, std::min(i + m_tileSize, width), std::min(j + m_tileSize, height)
+            });
         }
     }
+
+    std::vector<std::future<void>> futures;
+    
+    float count = (float)accumulateCount;
+    for (const auto& tile : tiles)
+    {
+        futures.push_back(std::async(std::launch::async, [&]() {
+
+            for (uint32_t i = tile.x0; i < tile.x1; i++)
+            {
+                for (uint32_t j = tile.y0; j < tile.y1; j++)
+                {
+                    auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
+                    
+                    auto L = TraceRay(ray, m_Depth);
+                    // Format is 0xAABBGGRR
+                    glm::vec3 lastColor;
+                    auto pColor = &imageBuffer[(i + j * (uint32_t)camera->GetWidth()) * 3];
+                    lastColor.r = pColor[0];
+                    lastColor.g = pColor[1];
+                    lastColor.b = pColor[2];
+                
+                    auto color = (lastColor * (count - 1) / count) + (L / count);
+                
+                    pColor[0] = color.r;
+                    pColor[1] = color.g;
+                    pColor[2] = color.b;
+                }
+            }
+        }));
+    }
+
+    for (auto& fut : futures)
+        fut.get();
+    // for (uint32_t i = 0; i < camera->GetWidth(); i++) {
+    //     for (uint32_t j = 0; j < camera->GetHeight(); j++) {
+            
+    //     }
+    // }
 }
 
 glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
