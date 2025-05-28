@@ -83,3 +83,48 @@ SurfaceInteraction Quad::Intersect(const Ray& ray) const
 
     return intersect;
 }
+
+SurfaceInteraction Triangle::Intersect(const Ray& ray) const
+{
+    SurfaceInteraction intersect;
+    
+    auto rayLocal = ray.Transform(m_Transform.GetInvMat());
+
+    const auto& P0 = m_Vertices[0];
+    const auto& P1 = m_Vertices[1];
+    const auto& P2 = m_Vertices[2];
+    const auto& N0 = m_Normals[0];
+    const auto& N1 = m_Normals[1];
+    const auto& N2 = m_Normals[2];
+    auto S = rayLocal.Origin - P0;
+    auto E1 = P1 - P0;
+    auto E2 = P2 - P0;
+    auto S1 = glm::cross(rayLocal.Direction, E2);
+    auto S2 = glm::cross(S, E1);
+
+    auto divisor = glm::dot(S1, E1);
+    if (divisor == 0)
+    {
+        return intersect;
+    }
+
+    auto t = glm::dot(S2, E2) / divisor;
+    auto b1 = glm::dot(S1, S) / divisor;
+    auto b2 = glm::dot(S2, rayLocal.Direction) / divisor;
+
+    if (t < 0.001f || b1 < 0.0f || b2 < 0.0f || b1 + b2 > 1.0f)
+    {
+        return intersect;
+    }
+
+    intersect.Position = (1 - b1 - b2) * P0 + b1 * P1 + b2 * P2;
+    intersect.Position = Rotate(m_Transform.GetMat(), intersect.Position);
+    intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
+    intersect.Normal = (1 - b1 - b2) * N0 + b1 * N1 + b2 * N2;
+    intersect.Normal = Rotate(m_Transform.GetMat(), intersect.Normal);
+    intersect.Normal = Translate(m_Transform.GetMat(), intersect.Normal);
+    intersect.HasIntersection = true;
+
+
+   return intersect;
+}

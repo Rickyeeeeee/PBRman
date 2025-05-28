@@ -52,3 +52,39 @@ private:
 
     const glm::vec3 m_Normal = glm::vec3(0.0f, 1.0f, 0.0f);
 };
+
+class Triangle : public Shape
+{
+public:
+    Triangle(
+        const glm::vec3& v0, 
+        const glm::vec3& v1, 
+        const glm::vec3& v2,
+        const glm::vec3& n0, 
+        const glm::vec3& n1, 
+        const glm::vec3& n2,
+        const glm::vec2& uv0, 
+        const glm::vec2& uv1, 
+        const glm::vec2& uv2
+        )
+    {
+        m_Vertices[0] = v0;
+        m_Vertices[1] = v1;
+        m_Vertices[2] = v2;
+        
+        m_Normals[0] = n0;
+        m_Normals[1] = n1;
+        m_Normals[2] = n2;
+
+        m_UVs[0] = uv0;
+        m_UVs[1] = uv1;
+        m_UVs[2] = uv2;
+    }
+
+    virtual SurfaceInteraction Intersect(const Ray& ray) const override;
+
+private:
+    glm::vec3 m_Vertices[3];
+    glm::vec3 m_Normals[3];
+    glm::vec2 m_UVs[3];
+};
