@@ -44,14 +44,14 @@ struct Ray
     
     const Ray& ApplyTransform(const glm::mat4& mat)
     {
-        Origin += mat[3];
+        Origin = glm::vec3(mat * glm::vec4(Origin, 1.0f));
         Direction = mat * glm::vec4(Direction, 0.0f);
     } 
     
     Ray Transform(const glm::mat4& mat) const
     {
         Ray ray = *this;
-        ray.Origin += mat[3];
+        ray.Origin = glm::vec3(mat * glm::vec4(ray.Origin, 1.0f));
         ray.Direction = mat * glm::vec4(Direction, 0.0f);
 
         return ray;
@@ -63,9 +63,9 @@ class Transform
 public:
     void SetRotation(const glm::vec3& eulerAngles)
     {
-        auto rot = glm::mat3(glm::yawPitchRoll(eulerAngles.x, eulerAngles.y, eulerAngles.z));
-        SetMat3(rot);
-        UpdateInv();
+        auto rot = glm::mat3(glm::yawPitchRoll(glm::radians(eulerAngles.y), glm::radians(eulerAngles.x), glm::radians(eulerAngles.z)));
+        this->SetMat3(rot);
+        this->UpdateInv();
     }
 
     void SetTranslation(const glm::vec3& trans)
@@ -88,7 +88,7 @@ private:
     void SetMat3(const glm::mat3& mat3)
     {
         for (int i = 0; i < 3; i++)
-            m_Mat[i] = glm::vec4(mat3[i], m_Mat[i].w);
+            m_Mat[i] = glm::vec4(mat3[i], 0.0f);
     }
 
     void UpdateInv()

@@ -33,11 +33,14 @@ public:
         m_Primitives.push_back(circle3);
         m_Primitives.push_back(circle4);
         circle.Shape->SetTranslation({ 0.0f, 1.0f, 0.0f });
-        // m_Primitives.push_back({
-        //     std::make_shared<Quad>(10.0f, 10.0f),
-        //     std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
-        // });
-        m_Primitives.push_back({
+        Primitive quad = {
+            std::make_shared<Quad>(10.0f, 10.0f),
+            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
+        };
+        quad.Shape->SetRotation({ 20.0f, 0.0f, 0.0f });
+        quad.Shape->SetTranslation({ -1.0f, -1.0f, -1.0f });
+        m_Primitives.push_back(quad);
+        Primitive tri{
             std::make_shared<Triangle>(
                 glm::vec3{ 5.0f, 0.0f, 5.0f },
                 glm::vec3{ 0.0f, 0.0f, -5.0f },
@@ -50,7 +53,9 @@ public:
                 glm::vec2{ 0.0f }
             ),
             std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
-        });
+        };
+        tri.Shape->SetRotation({ -20.0f, 10.0f, 0.0f });
+        m_Primitives.push_back(tri);
     }
 
     SurfaceInteraction Intersect(const Ray& ray)

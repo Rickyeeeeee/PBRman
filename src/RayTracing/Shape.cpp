@@ -74,7 +74,7 @@ SurfaceInteraction Quad::Intersect(const Ray& ray) const
         intersect.HasIntersection = true;
         intersect.Position = Rotate(m_Transform.GetMat(), p);
         intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
-        intersect.Normal = Rotate(m_Transform.GetMat(), m_Normal);
+        intersect.Normal = Rotate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? m_Normal : -m_Normal);
     }
     else
     {
@@ -122,7 +122,7 @@ SurfaceInteraction Triangle::Intersect(const Ray& ray) const
     intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
     intersect.Normal = (1 - b1 - b2) * N0 + b1 * N1 + b2 * N2;
     intersect.Normal = Rotate(m_Transform.GetMat(), intersect.Normal);
-    intersect.Normal = Translate(m_Transform.GetMat(), intersect.Normal);
+    intersect.Normal = Translate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? intersect.Normal : -intersect.Normal);
     intersect.HasIntersection = true;
 
 
