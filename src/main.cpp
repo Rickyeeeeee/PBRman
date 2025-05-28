@@ -93,6 +93,7 @@ std::shared_ptr<Scene> scene;
 // Image
 std::shared_ptr<Image> image;
 uint32_t* imageData = nullptr;
+float* accumulationData = nullptr;
 
 // ImGui objects
 std::shared_ptr<ImGui_NVRHI> nvrhiImgui;
@@ -141,8 +142,26 @@ int main() {
         glfwPollEvents();
 
         accumulateCount++;
-        renderer.Render(imageData, scene, camera, accumulateCount);
+        renderer.Render(accumulationData, scene, camera, accumulateCount);
         
+        auto width = camera->GetWidth();
+        auto height = camera->GetHeight();
+        for (uint32_t i = 0; i < width; i++)
+            for (uint32_t j = 0; j < height; j++)
+            {
+                auto r = accumulationData[(i + j * (uint32_t)width) * 3];
+                auto g = accumulationData[(i + j * (uint32_t)width) * 3 + 1];
+                auto b = accumulationData[(i + j * (uint32_t)width) * 3 + 2];
+                auto colori = 
+                    (uint32_t)(r * 255.0f) << 0 |
+                    (uint32_t)(g * 255.0f) << 8 |
+                    (uint32_t)(b * 255.0f) << 16 |
+                    0xFF000000;
+
+                imageData[i + j * (uint32_t)width] = colori;
+            }
+
+
         image->SetData(imageData);
         auto imageUploadFenceValue = ++fenceValue;
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), imageUploadFenceValue));
@@ -244,9 +263,9 @@ int main() {
         if (cameraUpdated)
         {
             accumulateCount = 0;
-            for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
+            for (uint32_t i = 0; i < viewportWidth * viewportHeight * 3; ++i)
             {
-                imageData[i] = 0xFF000000; // ABGR
+                accumulationData[i] = 0.0f;
             }
         }
         ImGui::Render();
@@ -393,6 +412,11 @@ void CreateSwapChainRenderTargets()
         for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
         {
             imageData[i] = 0xFF000000; // ABGR
+        }
+        accumulationData = new float[viewportWidth * viewportHeight * 3];
+        for (uint32_t i = 0; i < viewportWidth * viewportHeight * 3; ++i)
+        {
+            accumulationData[i] = 0.0f; // ABGR
         }
         
         image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);

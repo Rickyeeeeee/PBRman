@@ -30,6 +30,13 @@ public:
     {
         auto scatterDirection = interaction.Normal + RandomUnitVector();
 
+        auto& e = scatterDirection;
+        auto s = 1e-8;
+        if ((std::fabs(e[0]) < s) && (std::fabs(e[1]) < s) && (std::fabs(e[2]) < s))
+        {
+            scatterDirection = interaction.Normal;
+        }
+
         outRay.Origin = interaction.Position;
         outRay.Direction = glm::normalize(scatterDirection);
 
@@ -46,15 +53,16 @@ private:
 // outRay = reflect ray + subsurface scattering ray
 // reflect ray = 1.0f (randomness because of PBR roughness)
 // subsurface scattering ray = 0.0f
-class MetalMeterial : public Material
+class MetalMaterial : public Material
 {
 public:
-    MetalMeterial(const glm::vec3& albedo, float metallic) : m_Albedo(albedo), m_Roughness(metallic) {}
+    MetalMaterial(const glm::vec3& albedo, float metallic=0.0f) : m_Albedo(albedo), m_Roughness(metallic) {}
 
     virtual bool Scatter(const Ray& inRay, const SurfaceInteraction& interaction, glm::vec3& attenuation, Ray& outRay) const override
     {
         auto reflectedDir = glm::reflect(inRay.Direction, interaction.Normal);
         reflectedDir = glm::normalize(reflectedDir) + m_Roughness * RandomUnitVector();
+        // reflectedDir = glm::normalize(reflectedDir);
 
         outRay.Origin = interaction.Position;
         outRay.Direction = glm::normalize(reflectedDir);

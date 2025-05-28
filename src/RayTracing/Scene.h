@@ -10,16 +10,29 @@ public:
     {
         Primitive circle {
             std::make_shared<Circle>(1.0f),
-            std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 0.1f, 0.1f })
+            std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
         };
         circle.Shape->SetTranslation({ 0.0f, 1.0f, 0.0f });
         Primitive circle2 {
             std::make_shared<Circle>(1.0f),
-            std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 0.1f, 0.1f })
+            std::make_shared<LambertianMaterial>(glm::vec3{ 0.2f, 1.0f, 0.2f })
         };
         circle2.Shape->SetTranslation({ 2.0f, 1.0f, 0.0f });
+        Primitive circle3 {
+            std::make_shared<Circle>(1.0f),
+            std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 0.2f, 0.2f })
+        };
+        circle3.Shape->SetTranslation({ -2.0f, 1.0f, 0.0f });
+        Primitive circle4 {
+            std::make_shared<Circle>(1.0f),
+            std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
+        };
+        circle4.Shape->SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
         m_Primitives.push_back(circle);
         m_Primitives.push_back(circle2);
+        m_Primitives.push_back(circle3);
+        m_Primitives.push_back(circle4);
+        circle.Shape->SetTranslation({ 0.0f, 1.0f, 0.0f });
         m_Primitives.push_back({
             std::make_shared<Quad>(10.0f, 10.0f),
             std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})

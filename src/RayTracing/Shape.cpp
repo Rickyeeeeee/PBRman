@@ -24,11 +24,11 @@ SurfaceInteraction Circle::Intersect(const Ray &ray) const
         {
             t = t1 < t2 ? t1 : t2;
         }
-        else if (t1 >= 0.0001f)
+        else if (t1 >= 0.001f)
         {
             t = t1;
         }
-        else if (t2 >= 0.0001f)
+        else if (t2 >= 0.001f)
         {
             t = t2;
         }
