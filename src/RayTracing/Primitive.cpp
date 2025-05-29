@@ -1,12 +1,12 @@
 #include "Primitive.h"
 
-void ShapePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
+void ShapePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
     m_Shape->Intersect(ray, intersect);
     intersect->Material = m_Material;
 }
 
-void ShapePrimitiveList::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
+void ShapePrimitiveList::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
     float minDistance = std::numeric_limits<float>::max();
     int minIndex = -1;
