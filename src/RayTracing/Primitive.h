@@ -23,3 +23,18 @@ private:
     std::shared_ptr<Shape> m_Shape;
     std::shared_ptr<Material> m_Material;
 };
+
+class ShapePrimitiveList : public Primitive
+{
+public:
+    ShapePrimitiveList() = default;
+
+    void AddItem(const ShapePrimitive& shapePrimitive)
+    {
+        m_List.push_back(shapePrimitive);
+    }
+
+    virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
+private:
+    std::vector<ShapePrimitive> m_List;
+};
