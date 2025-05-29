@@ -1,8 +1,7 @@
 #include "Shape.h"
 
-SurfaceInteraction Circle::Intersect(const Ray &ray) const
+void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
 {
-    SurfaceInteraction intersect;
 
     auto rayLocal = ray.Transform(m_Transform.GetInvMat());
 
@@ -19,7 +18,7 @@ SurfaceInteraction Circle::Intersect(const Ray &ray) const
         float t2 = (-b - sqrtf(discriminant)) / 2 * a;
         float t = 0.0f;
 
-        intersect.HasIntersection = true;
+        intersect->HasIntersection = true;
         if (t1 >= 0.001f && t2 >= 0.001f)
         {
             t = t1 < t2 ? t1 : t2;
@@ -34,32 +33,29 @@ SurfaceInteraction Circle::Intersect(const Ray &ray) const
         }
         else
         {
-            intersect.HasIntersection = false;
+            intersect->HasIntersection = false;
         }
         auto intersectPoint = rayLocal.Origin + rayLocal.Direction * t;
         auto normal = glm::normalize(intersectPoint);
-        intersect.Position = Rotate(m_Transform.GetMat(), intersectPoint);
-        intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
-        intersect.Normal = Rotate(m_Transform.GetMat(), normal);
+        intersect->Position = Rotate(m_Transform.GetMat(), intersectPoint);
+        intersect->Position = Translate(m_Transform.GetMat(), intersect->Position);
+        intersect->Normal = Rotate(m_Transform.GetMat(), normal);
     }
     else
     {
-        intersect.HasIntersection = false;
+        intersect->HasIntersection = false;
     }
 
-    return intersect;
 }
 
-SurfaceInteraction Quad::Intersect(const Ray& ray) const
+void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 {
-    SurfaceInteraction intersect;
-
     auto rayLocal = ray.Transform(m_Transform.GetInvMat());
 
     if (fabs(rayLocal.Direction.y) < 1e-8f)
     {
-        intersect.HasIntersection = false;
-        return intersect;
+        intersect->HasIntersection = false;
+        return;
     }
 
     auto t = -rayLocal.Origin.y / rayLocal.Direction.y;
@@ -71,23 +67,19 @@ SurfaceInteraction Quad::Intersect(const Ray& ray) const
 
     if (t > 0.001f && (p.x * p.x < halfWidth * halfWidth) && (p.z * p.z < halfHeight * halfHeight))
     {
-        intersect.HasIntersection = true;
-        intersect.Position = Rotate(m_Transform.GetMat(), p);
-        intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
-        intersect.Normal = Rotate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? m_Normal : -m_Normal);
+        intersect->HasIntersection = true;
+        intersect->Position = Rotate(m_Transform.GetMat(), p);
+        intersect->Position = Translate(m_Transform.GetMat(), intersect->Position);
+        intersect->Normal = Rotate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? m_Normal : -m_Normal);
     }
     else
     {
-        intersect.HasIntersection = false;
+        intersect->HasIntersection = false;
     }
-
-    return intersect;
 }
 
-SurfaceInteraction Triangle::Intersect(const Ray& ray) const
+void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 {
-    SurfaceInteraction intersect;
-    
     auto rayLocal = ray.Transform(m_Transform.GetInvMat());
 
     const auto& P0 = m_Vertices[0];
@@ -105,7 +97,7 @@ SurfaceInteraction Triangle::Intersect(const Ray& ray) const
     auto divisor = glm::dot(S1, E1);
     if (divisor == 0)
     {
-        return intersect;
+        return;
     }
 
     auto t = glm::dot(S2, E2) / divisor;
@@ -114,17 +106,14 @@ SurfaceInteraction Triangle::Intersect(const Ray& ray) const
 
     if (t < 0.001f || b1 < 0.0f || b2 < 0.0f || b1 + b2 > 1.0f)
     {
-        return intersect;
+        return;
     }
 
-    intersect.Position = (1 - b1 - b2) * P0 + b1 * P1 + b2 * P2;
-    intersect.Position = Rotate(m_Transform.GetMat(), intersect.Position);
-    intersect.Position = Translate(m_Transform.GetMat(), intersect.Position);
-    intersect.Normal = (1 - b1 - b2) * N0 + b1 * N1 + b2 * N2;
-    intersect.Normal = Rotate(m_Transform.GetMat(), intersect.Normal);
-    intersect.Normal = Translate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? intersect.Normal : -intersect.Normal);
-    intersect.HasIntersection = true;
-
-
-   return intersect;
+    intersect->Position = (1 - b1 - b2) * P0 + b1 * P1 + b2 * P2;
+    intersect->Position = Rotate(m_Transform.GetMat(), intersect->Position);
+    intersect->Position = Translate(m_Transform.GetMat(), intersect->Position);
+    intersect->Normal = (1 - b1 - b2) * N0 + b1 * N1 + b2 * N2;
+    intersect->Normal = Rotate(m_Transform.GetMat(), intersect->Normal);
+    intersect->Normal = Translate(m_Transform.GetMat(), rayLocal.Origin.y > 0.0f ? intersect->Normal : -intersect->Normal);
+    intersect->HasIntersection = true;
 }

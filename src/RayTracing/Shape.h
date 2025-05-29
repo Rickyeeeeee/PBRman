@@ -18,11 +18,11 @@ class Shape
 {
 public:
     Shape() {};
-    virtual SurfaceInteraction Intersect(const Ray& ray) const = 0;
+    virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const = 0;
     Transform GetTransform() const { return m_Transform; }
-    void SetTransform(const Transform& trans) {  m_Transform = trans; }
-    void SetRotation(const glm::vec3& eulerAngles) { m_Transform.SetRotation(eulerAngles); }
-    void SetTranslation(const glm::vec3& offset) { m_Transform.SetTranslation(offset); }
+    Shape& SetTransform(const Transform& trans) {  m_Transform = trans; return *this; }
+    Shape& SetRotation(const glm::vec3& eulerAngles) { m_Transform.SetRotation(eulerAngles); return *this; }
+    Shape& SetTranslation(const glm::vec3& offset) { m_Transform.SetTranslation(offset); return *this; }
 
 protected:
     Transform m_Transform;
@@ -33,7 +33,7 @@ class Circle : public Shape
 public:
     Circle(float radius=1.0f) : m_Radius(radius), Shape() {};
 
-    virtual SurfaceInteraction Intersect(const Ray& ray) const override;
+    virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
     
 private:
     float m_Radius{ 1.0f };
@@ -44,7 +44,7 @@ class Quad : public Shape
 public:
     Quad(float width=1.0f, float height=1.0f) : m_Width(width), m_Height(height) {}
 
-    virtual SurfaceInteraction Intersect(const Ray& ray) const override;
+    virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
 
 private:
     float m_Width;
@@ -81,7 +81,7 @@ public:
         m_UVs[2] = uv2;
     }
 
-    virtual SurfaceInteraction Intersect(const Ray& ray) const override;
+    virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
 
 private:
     glm::vec3 m_Vertices[3];

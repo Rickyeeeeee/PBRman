@@ -8,39 +8,39 @@ class Scene
 public:
     Scene() 
     {
-        Primitive circle {
+        auto circle = std::make_shared<ShapePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
-        };
-        circle.Shape->SetTranslation({ 0.0f, 1.0f, 0.0f });
-        Primitive circle2 {
+        );
+        circle->GetShape().SetTranslation({ 0.0f, 1.0f, 0.0f });
+        auto circle2 = std::make_shared<ShapePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_shared<LambertianMaterial>(glm::vec3{ 0.2f, 1.0f, 0.2f })
-        };
-        circle2.Shape->SetTranslation({ 2.0f, 1.0f, 0.0f });
-        Primitive circle3 {
+        );
+        circle2->GetShape().SetTranslation({ 2.0f, 1.0f, 0.0f });
+        auto circle3 = std::make_shared<ShapePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 0.2f, 0.2f })
-        };
-        circle3.Shape->SetTranslation({ -2.0f, 1.0f, 0.0f });
-        Primitive circle4 {
+        );
+         circle3->GetShape().SetTranslation({ -2.0f, 1.0f, 0.0f });
+        auto circle4 = std::make_shared<ShapePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
-        };
-        circle4.Shape->SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
+        );
+        circle4->GetShape().SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
         m_Primitives.push_back(circle);
         m_Primitives.push_back(circle2);
         m_Primitives.push_back(circle3);
         m_Primitives.push_back(circle4);
-        circle.Shape->SetTranslation({ 0.0f, 1.0f, 0.0f });
-        Primitive quad = {
+        circle->GetShape().SetTranslation({ 0.0f, 1.0f, 0.0f });
+        auto quad = std::make_shared<ShapePrimitive>(
             std::make_shared<Quad>(10.0f, 10.0f),
             std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
-        };
-        quad.Shape->SetRotation({ 20.0f, 0.0f, 0.0f });
-        quad.Shape->SetTranslation({ -1.0f, -1.0f, -1.0f });
+        );
+        quad->GetShape().SetRotation({ 20.0f, 0.0f, 0.0f });
+        quad->GetShape().SetTranslation({ -1.0f, -1.0f, -1.0f });
         m_Primitives.push_back(quad);
-        Primitive tri{
+        auto tri = std::make_shared<ShapePrimitive>(
             std::make_shared<Triangle>(
                 glm::vec3{ 5.0f, 0.0f, 5.0f },
                 glm::vec3{ 0.0f, 0.0f, -5.0f },
@@ -53,12 +53,12 @@ public:
                 glm::vec2{ 0.0f }
             ),
             std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
-        };
-        tri.Shape->SetRotation({ -20.0f, 10.0f, 0.0f });
-        m_Primitives.push_back(tri);
+        );
+        tri->GetShape().SetRotation({ -20.0f, 10.0f, 0.0f });
+        // m_Primitives.push_back(tri);
     }
 
-    SurfaceInteraction Intersect(const Ray& ray)
+    void Intersect(const Ray& ray, SurfaceInteraction* intersect)
     {
         float minDistance = std::numeric_limits<float>::max();
         int minIndex = -1;
@@ -66,23 +66,25 @@ public:
         for (int i = 0; i < m_Primitives.size(); i++)
         {
             auto& primitive = m_Primitives[i];
-            auto si = primitive.Shape->Intersect(ray);
-            auto distance = glm::length(ray.Origin - si.Position);
-            if (si.HasIntersection && distance < minDistance)
+            SurfaceInteraction si;
+            primitive->Intersect(ray, &si);
+            auto disVec = ray.Origin - si.Position;
+            auto distance2 = glm::dot(disVec, disVec);
+            if (si.HasIntersection && distance2 < minDistance)
             {
-                minDistance = distance;
+                minDistance = distance2;
                 minIndex = i;
-                si.Material = primitive.Material;
-                minSurfaceInteraction = si;
+                *intersect = si;
             }
         }
 
         if (minIndex >= 0)
-            return minSurfaceInteraction;
+            return;
+
+        intersect->HasIntersection = false;
         
-        return SurfaceInteraction();
     }
 
 private:
-    std::vector<Primitive> m_Primitives;
+    std::vector<std::shared_ptr<Primitive>> m_Primitives;
 };
