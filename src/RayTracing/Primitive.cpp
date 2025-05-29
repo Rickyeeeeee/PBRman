@@ -3,7 +3,7 @@
 void ShapePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
     m_Shape->Intersect(ray, intersect);
-    intersect->Material = m_Material;
+    intersect->Material = m_Material.get();
 }
 
 void ShapePrimitiveList::Intersect(const Ray& ray, SurfaceInteraction* intersect)

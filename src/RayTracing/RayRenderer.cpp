@@ -80,10 +80,10 @@ glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
         if (intersect.Material->Scatter(ray, intersect, attenuation, scatteredRay))
         {
             scatteredRay.Normalize();
-            SurfaceInteraction visiblity;
-            m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
-            if (!visiblity.HasIntersection)
-                L += attenuation * glm::vec3{ 0.1f, 0.1f, 0.1f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
+            // SurfaceInteraction visiblity;
+            // m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
+            // if (!visiblity.HasIntersection)
+            //     L += attenuation * glm::vec3{ 0.1f, 0.1f, 0.1f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
             L += attenuation * TraceRay(scatteredRay, depth-1);
         }
     }

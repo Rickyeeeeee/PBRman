@@ -14,14 +14,14 @@ public:
 class ShapePrimitive : public Primitive
 {
 public:
-    ShapePrimitive(std::shared_ptr<Shape> shape, Material* material)
+    ShapePrimitive(std::shared_ptr<Shape> shape, std::shared_ptr<Material> material)
         : m_Shape(shape), m_Material(material) {}
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) override;
     Shape& GetShape() { return *m_Shape; }
     Material& GetMaterial() { return *m_Material; }
 private:
     std::shared_ptr<Shape> m_Shape;
-    Material* m_Material;
+    std::shared_ptr<Material> m_Material;
 };
 
 class ShapePrimitiveList : public Primitive
