@@ -2,44 +2,45 @@
 
 #include "Primitive.h"
 #include <vector>
+#include "Core/Mesh.h"
 
 class Scene
 {
 public:
     Scene() 
     {
-        auto circle = ShapePrimitive(
+        auto circle = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
         );
-        circle.GetShape().SetTranslation({ 0.0f, 1.0f, 0.0f });
-        auto circle2 = ShapePrimitive(
+        circle->SetTranslation({ 0.0f, 1.0f, 0.0f });
+        auto circle2 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_unique<LambertianMaterial>(glm::vec3{ 0.2f, 1.0f, 0.2f })
         );
-        circle2.GetShape().SetTranslation({ 2.0f, 1.0f, 0.0f });
-        auto circle3 = ShapePrimitive(
+        circle2->SetTranslation({ 2.0f, 1.0f, 0.0f });
+        auto circle3 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_unique<LambertianMaterial>(glm::vec3{ 1.0f, 0.2f, 0.2f })
         );
-         circle3.GetShape().SetTranslation({ -2.0f, 1.0f, 0.0f });
-        auto circle4 = ShapePrimitive(
+         circle3->SetTranslation({ -2.0f, 1.0f, 0.0f });
+        auto circle4 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
         );
-        circle4.GetShape().SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
-        m_Primitives.AddItem(circle);
-        m_Primitives.AddItem(circle2);
-        m_Primitives.AddItem(circle3);
-        m_Primitives.AddItem(circle4);
-        auto quad = ShapePrimitive(
+        circle4->SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
+        // m_Primitives.AddItem(circle);
+        // m_Primitives.AddItem(circle2);
+        // m_Primitives.AddItem(circle3);
+        // m_Primitives.AddItem(circle4);
+        auto quad = std::make_shared<SimplePrimitive>(
             std::make_shared<Quad>(10.0f, 10.0f),
             std::make_unique<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
         );
-        quad.GetShape().SetRotation({ 20.0f, 0.0f, 0.0f });
-        quad.GetShape().SetTranslation({ -1.0f, -1.0f, -1.0f });
+        quad->SetRotation({ 20.0f, 0.0f, 0.0f });
+        quad->SetTranslation({ -1.0f, -1.0f, -1.0f });
         m_Primitives.AddItem(quad);
-        auto tri = ShapePrimitive(
+        auto tri = std::make_shared<SimplePrimitive>(
             std::make_shared<Triangle>(
                 glm::vec3{ 5.0f, 0.0f, 5.0f },
                 glm::vec3{ 0.0f, 0.0f, -5.0f },
@@ -53,8 +54,19 @@ public:
             ),
             std::make_unique<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
         );
-        tri.GetShape().SetRotation({ -20.0f, 10.0f, 0.0f });
-        // m_Primitives.push_back(tri);
+        tri->SetRotation({ -20.0f, 10.0f, 0.0f });
+        // m_Primitives.AddItem(tri);
+
+        auto ply = std::make_shared<Mesh>(
+            "../../assets/icosahedron.ply"
+        );
+
+        auto triMesh = std::make_shared<TriangleList>(
+            *ply,
+            std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 0.8f, 0.8f})
+        );
+
+        m_Primitives.AddItem(triMesh);
     }
 
     void Intersect(const Ray& ray, SurfaceInteraction* intersect)
@@ -63,5 +75,5 @@ public:
     }
 
 private:
-    ShapePrimitiveList m_Primitives;
+    PrimitiveList m_Primitives;
 };

@@ -57,7 +57,21 @@ void RayRenderer::Render(float* imageBuffer, std::shared_ptr<Scene> scene, std::
         fut.get();
     // for (uint32_t i = 0; i < camera->GetWidth(); i++) {
     //     for (uint32_t j = 0; j < camera->GetHeight(); j++) {
-            
+    //         auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
+                    
+    //         auto L = TraceRay(ray, m_Depth);
+    //         // Format is 0xAABBGGRR
+    //         glm::vec3 lastColor;
+    //         auto pColor = &imageBuffer[(i + j * (uint32_t)camera->GetWidth()) * 3];
+    //         lastColor.r = pColor[0];
+    //         lastColor.g = pColor[1];
+    //         lastColor.b = pColor[2];
+        
+    //         auto color = (lastColor * (count - 1) / count) + (L / count);
+        
+    //         pColor[0] = color.r;
+    //         pColor[1] = color.g;
+    //         pColor[2] = color.b;       
     //     }
     // }
 }
@@ -80,10 +94,10 @@ glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
         if (intersect.Material->Scatter(ray, intersect, attenuation, scatteredRay))
         {
             scatteredRay.Normalize();
-            // SurfaceInteraction visiblity;
-            // m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
-            // if (!visiblity.HasIntersection)
-            //     L += attenuation * glm::vec3{ 0.1f, 0.1f, 0.1f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
+            SurfaceInteraction visiblity;
+            m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
+            if (!visiblity.HasIntersection)
+                L += attenuation * glm::vec3{ 0.1f, 0.1f, 0.1f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
             L += attenuation * TraceRay(scatteredRay, depth-1);
         }
     }

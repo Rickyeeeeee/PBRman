@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
+
 file(GLOB CPP_SOURCE 
     *.cpp
     core/*.cpp
@@ -11,6 +12,9 @@ file(GLOB CPP_SOURCE
 )
 
 add_executable(PBRman ${CPP_SOURCE})
+set_target_properties(PBRman PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
+)
 
 target_link_libraries(PBRman
     glfw
@@ -21,6 +25,7 @@ target_link_libraries(PBRman
     glm::glm
     imgui
     d3dcompiler
+    tinyply
 )
 
 target_include_directories(PBRman PRIVATE
@@ -29,4 +34,5 @@ target_include_directories(PBRman PRIVATE
     ${PROJECT_SOURCE_DIR}/external/nvrhi/include
     ${PROJECT_SOURCE_DIR}/external/glm
     ${PROJECT_SOURCE_DIR}/external/imgui
+    ${PROJECT_SOURCE_DIR}/external/tinyply/source
 )

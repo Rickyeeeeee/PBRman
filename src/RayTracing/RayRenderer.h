@@ -26,6 +26,6 @@ private:
     glm::vec3 m_SkyLight{ 0.6f, 0.6f, 0.8f };
     glm::vec3 m_SkyLightDirection = glm::normalize(glm::vec3{ 1.0f, 1.0f, 1.0f });
 
-    const int m_Depth = 5;
+    const int m_Depth = 3;
     const uint32_t m_tileSize = 32;
 };

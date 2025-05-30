@@ -19,13 +19,6 @@ class Shape
 public:
     Shape() {};
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const = 0;
-    Transform GetTransform() const                      { return m_Transform; }
-    Shape& SetTransform(const Transform& trans)         { m_Transform = trans;                  return *this; }
-    Shape& SetRotation(const glm::vec3& eulerAngles)    { m_Transform.SetRotation(eulerAngles); return *this; }
-    Shape& SetTranslation(const glm::vec3& offset)      { m_Transform.SetTranslation(offset);   return *this; }
-
-protected:
-    Transform m_Transform;
 };
 
 class Circle : public Shape
