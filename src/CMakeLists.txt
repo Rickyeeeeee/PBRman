@@ -11,7 +11,17 @@ file(GLOB CPP_SOURCE
     RayTracing/*.cpp
 )
 
-add_executable(PBRman ${CPP_SOURCE})
+file (GLOB HEADER_SOURCE 
+    *.h
+    core/*.h
+    RayTracing/*.h
+)
+
+add_executable(
+    PBRman 
+    ${CPP_SOURCE}
+    ${HEADER_SOURCE}
+)
 set_target_properties(PBRman PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin"
 )

@@ -10,6 +10,8 @@ void SimplePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
     intersect->Material = m_Material.get();
 }
 
+static bool genNormal = true;
+
 TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
     : m_Material(material)
 {
@@ -28,17 +30,36 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
         auto i0 = indices[i * 3 + 0];
         auto i1 = indices[i * 3 + 1];
         auto i2 = indices[i * 3 + 2];
-        m_TraingleList.push_back(Triangle(
-            vertices[i0] * 1.0f,
-            vertices[i1] * 1.0f,
-            vertices[i2] * 1.0f,
-            normals[i0],
-            normals[i1],
-            normals[i2],
-            glm::vec2{ 0.0f },
-            glm::vec2{ 0.0f },
-            glm::vec2{ 0.0f } )
-        );
+        glm::vec3 normal;
+        normal = glm::normalize(glm::cross(vertices[i1]-vertices[i0], vertices[i2]-vertices[i0]));
+        if (genNormal || normals.size() == 0)
+        {
+            m_TraingleList.push_back(Triangle(
+                vertices[i0] * 1.0f,
+                vertices[i1] * 1.0f,
+                vertices[i2] * 1.0f,
+                normal,
+                normal,
+                normal,
+                glm::vec2{ 0.0f },
+                glm::vec2{ 0.0f },
+                glm::vec2{ 0.0f } )
+            );
+        }
+        else
+        {
+            m_TraingleList.push_back(Triangle(
+                vertices[i0] * 1.0f,
+                vertices[i1] * 1.0f,
+                vertices[i2] * 1.0f,
+                normals[i0],
+                normals[i1],
+                normals[i2],
+                glm::vec2{ 0.0f },
+                glm::vec2{ 0.0f },
+                glm::vec2{ 0.0f } )
+            );
+        }
     }
 }
 

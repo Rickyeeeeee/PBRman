@@ -77,36 +77,36 @@ private:
     float m_Roughness; // Fresnel reflectance
 };
 
-class dielectricMaterial : public Material
+class DielectricMaterial : public Material
 {
 public:
-    dielectricMaterial(float refractionIndex) : m_RefractionIndex(refractionIndex) {};
+    DielectricMaterial(float refractionIndex) : m_RefractionIndex(refractionIndex) {};
 
     virtual bool Scatter(const Ray& inRay, const SurfaceInteraction& interaction, glm::vec3& attenuation, Ray& outRay) const override
     {
         attenuation = glm::vec3 { 1.0f, 1.0f, 1.0f };
-        // double ri = rec.front_face ? (1.0/refraction_index) : refraction_index;
+        float ri = interaction.IsFrontFace ? (1.0f / m_RefractionIndex) : m_RefractionIndex;
 
-        // vec3 unit_direction = unit_vector(r_in.direction());
-        // double cos_theta = std::fmin(dot(-unit_direction, rec.normal), 1.0);
-        // double sin_theta = std::sqrt(1.0 - cos_theta*cos_theta);
+        glm::vec3 unit_direction = inRay.Direction;
+        float cos_theta = std::fmin(glm::dot(-unit_direction, interaction.Normal), 1.0f);
+        float sin_theta = std::sqrt(1.0 - cos_theta*cos_theta);
 
-        // bool cannot_refract = ri * sin_theta > 1.0;
-        // vec3 direction;
+        bool cannot_refract = ri * sin_theta > 1.0;
+        glm::vec3 direction;
 
-        // if (cannot_refract || reflectance(cos_theta, ri) > random_double())
-        //     direction = reflect(unit_direction, rec.normal);
-        // else
-        //     direction = refract(unit_direction, rec.normal, ri);
+        if (cannot_refract || this->fresnelReflectance(cos_theta, ri) > Random())
+            direction = glm::reflect(unit_direction, interaction.Normal);
+        else
+            direction = Reflect(unit_direction, interaction.Normal, ri);
 
-        // scattered = ray(rec.p, direction, r_in.time());
+        outRay = Ray{ interaction.Position, direction };
 
         return true;
     }
 private:
     float m_RefractionIndex;
 
-    static double fresnelReflectance(float cosine, float refractionIndex) {
+    static float fresnelReflectance(float cosine, float refractionIndex) {
         // Use Schlick's approximation for reflectance.
         auto r0 = (1 - refractionIndex) / (1 + refractionIndex);
         r0 = r0*r0;

@@ -24,3 +24,15 @@ inline glm::vec3 RandomUnitVector()
             return p / sqrt(lensq);
     }
 }
+
+inline float LengthSquared(const glm::vec3& v)
+{
+    return glm::dot(v, v);
+}
+
+inline glm::vec3 Reflect(const glm::vec3& uv, const glm::vec3& n, float etai_over_etat) {
+    auto cos_theta = std::fmin(dot(-uv, n), 1.0f);
+    glm::vec3 r_out_perp =  etai_over_etat * (uv + cos_theta * n);
+    glm::vec3 r_out_parallel = -std::sqrt(std::fabs(1.0f - LengthSquared(r_out_perp))) * n;
+    return r_out_perp + r_out_parallel;
+}

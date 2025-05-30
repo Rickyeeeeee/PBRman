@@ -19,14 +19,17 @@ void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
         if (t1 >= 0.001f && t2 >= 0.001f)
         {
             t = t1 < t2 ? t1 : t2;
+            intersect->IsFrontFace = true;
         }
         else if (t1 >= 0.001f)
         {
             t = t1;
+            intersect->IsFrontFace = false;
         }
         else if (t2 >= 0.001f)
         {
             t = t2;
+            intersect->IsFrontFace = false;
         }
         else
         {
@@ -34,6 +37,8 @@ void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
         }
         auto intersectPoint = ray.Origin + ray.Direction * t;
         auto normal = glm::normalize(intersectPoint);
+        if (!intersect->IsFrontFace)
+            normal *= -1.0f;
         intersect->Position = intersectPoint;
         intersect->Normal = normal;
     }
@@ -63,7 +68,8 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     {
         intersect->HasIntersection = true;
         intersect->Position = p;
-        intersect->Normal = ray.Origin.y > 0.0f ? m_Normal : -m_Normal;
+        intersect->IsFrontFace = ray.Origin.y > 0.0f;
+        intersect->Normal = intersect->IsFrontFace ? m_Normal : -m_Normal;
     }
     else
     {
@@ -103,4 +109,13 @@ void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     intersect->Position = (1 - b1 - b2) * P0 + b1 * P1 + b2 * P2;
     intersect->Normal = (1 - b1 - b2) * N0 + b1 * N1 + b2 * N2;
     intersect->HasIntersection = true;
+    if (glm::dot(intersect->Normal, ray.Direction) > 0.0f)
+    {
+        intersect->Normal *= -1.0f;
+        intersect->IsFrontFace = false;
+    }
+    else
+    {
+        intersect->IsFrontFace = true;
+    }
 }
