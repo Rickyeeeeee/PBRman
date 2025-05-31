@@ -20,6 +20,7 @@ class Shape
 public:
     Shape() {};
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const = 0;
+    // TODO: Add Transform parameter
     virtual AABB GetAABB() const = 0;
 };
 
