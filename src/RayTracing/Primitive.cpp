@@ -35,9 +35,9 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
         if (genNormal || normals.size() == 0)
         {
             m_TraingleList.push_back(Triangle(
-                vertices[i0] * 1.0f,
-                vertices[i1] * 1.0f,
-                vertices[i2] * 1.0f,
+                vertices[i0] * 5.0f,
+                vertices[i1] * 5.0f,
+                vertices[i2] * 5.0f,
                 normal,
                 normal,
                 normal,

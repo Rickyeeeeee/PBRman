@@ -10,9 +10,12 @@ public:
     Material() = default;
     virtual ~Material() = default;
 
-    virtual bool Scatter(const Ray& inRay, const SurfaceInteraction& intersection, glm::vec3& attenuation, Ray& outRay) const = 0;
+    virtual bool Scatter(const Ray& inRay, const SurfaceInteraction& intersection, glm::vec3& attenuation, Ray& outRay) const
+    {
+        return false;
+    }
 
-    virtual void Emit(const SurfaceInteraction& intersection, glm::vec3& emittedColor) const
+    virtual void Emit(glm::vec3& emittedColor) const
     {
         emittedColor = glm::vec3(0.0f); // Default to no emission
     }
@@ -112,4 +115,17 @@ private:
         r0 = r0*r0;
         return r0 + (1-r0)*std::pow((1 - cosine),5);
     }
+};
+
+class EmissiveMaterial : public Material
+{
+public:
+    EmissiveMaterial(const glm::vec3& color) : m_Color(color) {}
+
+    virtual void Emit(glm::vec3& emittedColor) const override
+    {
+        emittedColor = m_Color;
+    }
+private:
+    glm::vec3 m_Color;
 };

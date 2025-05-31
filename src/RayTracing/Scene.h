@@ -12,7 +12,7 @@ public:
         auto circle = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
-            std::make_unique<DielectricMaterial>(1.1f)
+            std::make_unique<DielectricMaterial>(0.9f)
         );
         circle->SetTranslation({ 0.0f, 1.0f, 0.0f });
         auto circle2 = std::make_shared<SimplePrimitive>(
@@ -64,10 +64,11 @@ public:
 
         auto triMesh = std::make_shared<TriangleList>(
             *ply,
-            std::make_unique<DielectricMaterial>(0.9f)
+            // std::make_unique<DielectricMaterial>(0.9f)
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 3.0f, 3.0f, 3.0f })
             // std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.85f})
         );
-        triMesh->SetTranslation({ 0.0f, 3.0f, 0.0f });
+        triMesh->SetTranslation({ 0.0f, 10.0f, 0.0f });
         m_Primitives.AddItem(triMesh);
     }
 

@@ -36,6 +36,7 @@ void RayRenderer::Render(float* imageBuffer, std::shared_ptr<Scene> scene, std::
                     auto ray = camera->GetCameraRay((float)i + 0.5f, (float)j + 0.5f);
                     
                     auto L = TraceRay(ray, m_Depth);
+                    L = glm::clamp(L, 0.0f, 1.0f);
                     // Format is 0xAABBGGRR
                     glm::vec3 lastColor;
                     auto pColor = &imageBuffer[(i + j * (uint32_t)camera->GetWidth()) * 3];
@@ -89,16 +90,27 @@ glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
 
     if (intersect.HasIntersection)
     {
-        Ray scatteredRay;
+        // Emitted Lighting
+        glm::vec3 emittedColor{ 0.0f };
+        intersect.Material->Emit(emittedColor);
+        L += emittedColor;
         glm::vec3 attenuation;
+        
+        // Scattered Lighting
+        Ray scatteredRay;
         if (intersect.Material->Scatter(ray, intersect, attenuation, scatteredRay))
         {
             scatteredRay.Normalize();
+
+            // Direct Lighting
             SurfaceInteraction visiblity;
             m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
             if (!visiblity.HasIntersection)
-                L += attenuation * glm::vec3{ 0.1f, 0.1f, 0.1f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
+                L += attenuation * glm::vec3{ 0.0f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
+
+            // Indirect Lighting
             L += attenuation * TraceRay(scatteredRay, depth-1);
+
         }
     }
     else
