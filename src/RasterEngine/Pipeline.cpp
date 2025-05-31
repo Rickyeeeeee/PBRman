@@ -221,6 +221,7 @@ void CubePipeline::CreatePipeline()
     pipelineDesc.bindingLayouts = { m_BindingLayout };
     pipelineDesc.inputLayout = inputLayout;
     pipelineDesc.renderState.rasterState.cullMode = nvrhi::RasterCullMode::None;
+    pipelineDesc.renderState.depthStencilState.depthTestEnable = false;
 
     m_Pipeline = m_Device->createGraphicsPipeline(pipelineDesc, m_Framebuffer);
 }

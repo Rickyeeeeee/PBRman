@@ -82,6 +82,7 @@ public:
     glm::mat4 GetViewProjection() const
     {
         glm::mat4 view = glm::lookAtRH(m_Position, m_Position + m_Front, m_Up);
+        // Fron right-handed to left-handed, depth range is in [0.0, 1.0f]
         glm::mat4 proj = glm::perspectiveRH_ZO(1.0f, m_Width / m_Height, 0.01f, 1000.0f);
         return proj * view;
     }

@@ -273,8 +273,10 @@ int main() {
 
         // Quad render pass
         commandList->open();
-        commandList->beginMarker("Quad Render Pass");
+        commandList->beginMarker("Quad Texture Render Pass");
         quadPipeline->Render(commandList, image->GetTexture(), quadTextureSampler, camera->GetWidth(), camera->GetHeight());
+        commandList->endMarker();
+        commandList->beginMarker("Quad Debug Cube Render Pass");
         cubePipeline->Render(commandList, cubes, {camera->GetViewProjection()}, camera->GetWidth(), camera->GetHeight());
         commandList->endMarker();
         commandList->close();
