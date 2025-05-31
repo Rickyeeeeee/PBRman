@@ -18,7 +18,7 @@
 #include <core/imgui_nvrhi.h>
 #include <core/imgui_impl_glfw.h>
 
-#include "Image.h"
+#include "RasterEngine/Image.h"
 #include "RayTracing/Camera.h"
 #include "RayTracing/Scene.h"
 #include "RayTracing/RayRenderer.h"
