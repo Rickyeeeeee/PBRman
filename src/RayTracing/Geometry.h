@@ -102,14 +102,14 @@ public:
         return m_InvMat;
     }
     
-    private:
+private:
     
     void UpdateInv()
     {
         m_InvMat = glm::inverse(m_Mat);
     }
     
-    private:
+private:
     glm::mat4 m_Mat{ 1.0f };
     glm::mat4 m_InvMat{ 1.0f };
 };
@@ -121,14 +121,13 @@ inline glm::vec3 TransformVector(const glm::mat4& mat, const glm::vec3 &vec)
 
 inline glm::vec3 TransformNormal(const glm::mat4& invMat, const glm::vec3& normal)
 {
-    return glm::mat3(glm::transpose(invMat)) * normal;
+    return glm::normalize(glm::mat3(glm::transpose(invMat)) * normal);
 }
 
 inline glm::vec3 TransformPoint(const glm::mat4& mat, const glm::vec3& point)
 {
     return mat * glm::vec4(point, 1.0f);
 }
-
 
 struct AABB
 {

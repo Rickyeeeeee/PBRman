@@ -2,7 +2,9 @@
 
 void SimplePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
-    auto rayLocal = ray.Transform(m_Transform.GetInvMat());
+    Ray rayLocal;
+    rayLocal.Origin = TransformPoint(m_Transform.GetInvMat(), ray.Origin);
+    rayLocal.Direction = TransformNormal(m_Transform.GetMat(), ray.Direction);
     m_Shape->Intersect(rayLocal, intersect);
     intersect->Position = TransformPoint(m_Transform.GetMat(), intersect->Position);
     intersect->Normal = TransformNormal(m_Transform.GetInvMat(), intersect->Normal);
@@ -64,7 +66,9 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
 
 void TriangleList::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
-    auto rayLocal = ray.Transform(m_Transform.GetInvMat());
+    Ray rayLocal;
+    rayLocal.Origin = TransformPoint(m_Transform.GetInvMat(), ray.Origin);
+    rayLocal.Direction = TransformNormal(m_Transform.GetMat(), ray.Direction);
 
     float minDistance = std::numeric_limits<float>::max();
     int minIndex = -1;
