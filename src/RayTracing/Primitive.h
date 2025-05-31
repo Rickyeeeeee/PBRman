@@ -19,11 +19,17 @@ public:
         : m_Shape(shape), m_Material(material) {}
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) override;
     Shape& GetShape() { return *m_Shape; }
-    Material& GetMaterial() { return *m_Material; }
-    Transform GetTransform() const                      { return m_Transform; }
-    SimplePrimitive& SetTransform(const Transform& trans)         { m_Transform = trans;                  return *this; }
-    SimplePrimitive& SetRotation(const glm::vec3& eulerAngles)    { m_Transform.SetRotation(eulerAngles); return *this; }
-    SimplePrimitive& SetTranslation(const glm::vec3& offset)      { m_Transform.SetTranslation(offset);   return *this; }
+    Material& GetMaterial()                     { return *m_Material; }
+    Transform GetTransform() const              { return m_Transform; }
+    void SetTransform(const Transform& trans)   { m_Transform = trans; }
+    void SetTransform(
+        const glm::vec3& scale, 
+        const glm::vec3& eulerAngles, 
+        const glm::vec3& translation)   
+    { 
+        m_Transform = Transform();
+        m_Transform.Set(scale, glm::radians(eulerAngles), translation);
+    }
 private:
     std::shared_ptr<Shape> m_Shape;
     Transform m_Transform;
@@ -50,10 +56,16 @@ class TriangleList : public Primitive
 public:
     TriangleList(const Mesh& mesh, std::shared_ptr<Material> material);
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) override;
-    Transform GetTransform() const                      { return m_Transform; }
-    TriangleList& SetTransform(const Transform& trans)         { m_Transform = trans;                  return *this; }
-    TriangleList& SetRotation(const glm::vec3& eulerAngles)    { m_Transform.SetRotation(eulerAngles); return *this; }
-    TriangleList& SetTranslation(const glm::vec3& offset)      { m_Transform.SetTranslation(offset);   return *this; }
+    Transform GetTransform() const              { return m_Transform; }
+    void SetTransform(const Transform& trans)   { m_Transform = trans; }
+    void SetTransform(
+        const glm::vec3& scale, 
+        const glm::vec3& eulerAngles, 
+        const glm::vec3& translation)   
+    { 
+        m_Transform = Transform(); 
+        m_Transform.Set(scale, glm::radians(eulerAngles), translation);
+    }
 private:
     std::vector<Triangle>       m_TraingleList;
     std::shared_ptr<Material>   m_Material;

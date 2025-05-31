@@ -61,55 +61,74 @@ struct Ray
 class Transform
 {
 public:
-    void SetRotation(const glm::vec3& eulerAngles)
+    Transform() = default;
+    
+    Transform(const glm::mat4& mat)
     {
-        auto rot = glm::mat3(glm::yawPitchRoll(glm::radians(eulerAngles.y), glm::radians(eulerAngles.x), glm::radians(eulerAngles.z)));
-        this->SetMat3(rot);
+        m_Mat = mat;
         this->UpdateInv();
     }
 
-    void SetTranslation(const glm::vec3& trans)
+    Transform(const glm::mat4& mat, const glm::mat4& invMat)
+        : m_Mat(mat), m_InvMat(invMat) {}
+
+    void SetMat(const glm::mat4& mat)
     {
-        m_Mat[3] = glm::vec4{ trans, 1.0f};
-        UpdateInv();
+        m_Mat = mat;
+        this->UpdateInv();
+    }
+
+    void Set(const glm::vec3& scale, const glm::vec3& eulerAngles, const glm::vec3& translation)
+    {
+        m_Mat = 
+            glm::translate(glm::mat4(1.0f), translation) * 
+            glm::eulerAngleXYZ(eulerAngles.x, eulerAngles.y, eulerAngles.z) * 
+            glm::scale(glm::mat4(1.0f), scale);
+        this->UpdateInv();
+    }
+    
+    Transform GetInverse() const
+    {
+        return Transform{ m_InvMat, m_Mat };
     }
 
     const glm::mat4& GetMat() const
     {
         return m_Mat;
     }
-
+    
     const glm::mat4& GetInvMat() const
     {
         return m_InvMat;
     }
-
-private:
-    void SetMat3(const glm::mat3& mat3)
-    {
-        for (int i = 0; i < 3; i++)
-            m_Mat[i] = glm::vec4(mat3[i], 0.0f);
-    }
-
+    
+    private:
+    
     void UpdateInv()
     {
         m_InvMat = glm::inverse(m_Mat);
     }
-
-private:
+    
+    private:
     glm::mat4 m_Mat{ 1.0f };
     glm::mat4 m_InvMat{ 1.0f };
 };
 
-inline glm::vec3 Rotate(const glm::mat4& mat, const glm::vec3& vec)
+inline glm::vec3 TransformVector(const glm::mat4& mat, const glm::vec3 &vec)
 {
-    return  mat * glm::vec4(vec, 0.0f);
+    return mat * glm::vec4(vec, 0.0f);
 }
 
-inline glm::vec3 Translate(const glm::mat4& mat, const glm::vec3& point)
+inline glm::vec3 TransformNormal(const glm::mat4& invMat, const glm::vec3& normal)
 {
-    return { mat[3][0] + point.x, mat[3][1] + point.y, mat[3][2] + point.z };
+    return glm::mat3(glm::transpose(invMat)) * normal;
 }
+
+inline glm::vec3 TransformPoint(const glm::mat4& mat, const glm::vec3& point)
+{
+    return mat * glm::vec4(point, 1.0f);
+}
+
 
 struct AABB
 {

@@ -1,5 +1,7 @@
 #include "Shape.h"
 
+constexpr static float tMin = 0.001f;
+
 void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
 {
     auto l = ray.Origin;
@@ -16,17 +18,17 @@ void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
         float t = 0.0f;
 
         intersect->HasIntersection = true;
-        if (t1 >= 0.001f && t2 >= 0.001f)
+        if (t1 >= tMin && t2 >= tMin)
         {
             t = t1 < t2 ? t1 : t2;
             intersect->IsFrontFace = true;
         }
-        else if (t1 >= 0.001f)
+        else if (t1 >= tMin)
         {
             t = t1;
             intersect->IsFrontFace = false;
         }
-        else if (t2 >= 0.001f)
+        else if (t2 >= tMin)
         {
             t = t2;
             intersect->IsFrontFace = false;
@@ -72,7 +74,7 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     float halfWidth = m_Width / 2.0f;
     float halfHeight = m_Height / 2.0f;
 
-    if (t > 0.001f && (p.x * p.x < halfWidth * halfWidth) && (p.z * p.z < halfHeight * halfHeight))
+    if (t > tMin && (p.x * p.x < halfWidth * halfWidth) && (p.z * p.z < halfHeight * halfHeight))
     {
         intersect->HasIntersection = true;
         intersect->Position = p;
@@ -88,8 +90,8 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 AABB Quad::GetAABB() const
 {
     return AABB{
-		glm::vec3{ -m_Width / 2.0f, -0.001f, -m_Height / 2.0f },
-		glm::vec3{  m_Width / 2.0f,  0.001f,  m_Height / 2.0f }
+		glm::vec3{ -m_Width / 2.0f, -tMin, -m_Height / 2.0f },
+		glm::vec3{  m_Width / 2.0f,  tMin,  m_Height / 2.0f }
     };
 }
 
@@ -117,7 +119,7 @@ void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     auto b1 = glm::dot(S1, S) / divisor;
     auto b2 = glm::dot(S2, ray.Direction) / divisor;
 
-    if (t < 0.001f || b1 < 0.0f || b2 < 0.0f || b1 + b2 > 1.0f)
+    if (t < tMin || b1 < 0.0f || b2 < 0.0f || b1 + b2 > 1.0f)
     {
         return;
     }

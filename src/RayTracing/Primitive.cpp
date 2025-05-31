@@ -4,9 +4,8 @@ void SimplePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
     auto rayLocal = ray.Transform(m_Transform.GetInvMat());
     m_Shape->Intersect(rayLocal, intersect);
-    intersect->Position = Rotate(m_Transform.GetMat(), intersect->Position);
-    intersect->Position = Translate(m_Transform.GetMat(), intersect->Position);
-    intersect->Normal = Rotate(m_Transform.GetMat(), intersect->Normal);
+    intersect->Position = TransformPoint(m_Transform.GetMat(), intersect->Position);
+    intersect->Normal = TransformNormal(m_Transform.GetInvMat(), intersect->Normal);
     intersect->Material = m_Material.get();
 }
 
@@ -35,9 +34,9 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
         if (genNormal || normals.size() == 0)
         {
             m_TraingleList.push_back(Triangle(
-                vertices[i0] * 5.0f,
-                vertices[i1] * 5.0f,
-                vertices[i2] * 5.0f,
+                vertices[i0] * 1.0f,
+                vertices[i1] * 1.0f,
+                vertices[i2] * 1.0f,
                 normal,
                 normal,
                 normal,
@@ -77,12 +76,11 @@ void TriangleList::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 		triangle.Intersect(rayLocal, &si);
 		if (si.HasIntersection)
 		{
-            si.Position = Rotate(m_Transform.GetMat(), si.Position);
-			si.Position = Translate(m_Transform.GetMat(), si.Position);
+            si.Position = TransformPoint(m_Transform.GetMat(), si.Position);
             
             auto disVec = ray.Origin - si.Position;
             auto distance2 = glm::dot(disVec, disVec);
-			si.Normal = Rotate(m_Transform.GetMat(), si.Normal);
+			si.Normal = TransformNormal(m_Transform.GetInvMat(), si.Normal);
 			si.Material = m_Material.get();
             if (distance2 < minDistance)
             {
