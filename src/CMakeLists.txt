@@ -9,12 +9,14 @@ file(GLOB CPP_SOURCE
     *.cpp
     core/*.cpp
     RayTracing/*.cpp
+    RasterEngine/*.cpp
 )
 
 file (GLOB HEADER_SOURCE 
     *.h
     core/*.h
     RayTracing/*.h
+    RasterEngine/*.h
 )
 
 add_executable(

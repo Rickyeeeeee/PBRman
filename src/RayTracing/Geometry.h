@@ -111,3 +111,16 @@ inline glm::vec3 Translate(const glm::mat4& mat, const glm::vec3& point)
     return { mat[3][0] + point.x, mat[3][1] + point.y, mat[3][2] + point.z };
 }
 
+struct AABB
+{
+    glm::vec3 Min{ 0.0f };
+    glm::vec3 Max{ 0.0f };
+
+    static AABB Union(const AABB& box1, const AABB& box2)
+    {
+        return AABB{
+            glm::min(box1.Min, box2.Min),
+            glm::max(box1.Min, box2.Min)
+        };
+    }
+};

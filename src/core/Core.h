@@ -6,3 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
+
+#define RUNTIME_DIRECTORY "../../"
+#define LRUNTIME_DIRECTORY L"../../"

@@ -22,6 +22,7 @@
 #include "RayTracing/Camera.h"
 #include "RayTracing/Scene.h"
 #include "RayTracing/RayRenderer.h"
+#include "RasterEngine/Pipeline.h"
 
 // Vertex structure
 struct Vertex {
@@ -80,6 +81,12 @@ nvrhi::FramebufferHandle swapChainFrameBufferHandles[FrameCount];
 
 // Application objects
 nvrhi::CommandListHandle commandList;
+nvrhi::TextureHandle quadColorAttachmentHandle;
+nvrhi::TextureHandle quadDepthAttachmentHandle;
+nvrhi::FramebufferHandle quadFrameBuffer;
+nvrhi::SamplerHandle quadTextureSampler;
+std::shared_ptr<FullscreenQuadPipeline> quadPipeline;
+std::shared_ptr<CubePipeline> cubePipeline;
 
 // Camera
 std::shared_ptr<Camera> camera;
@@ -97,18 +104,6 @@ float* accumulationData = nullptr;
 
 // ImGui objects
 std::shared_ptr<ImGui_NVRHI> nvrhiImgui;
-
-// Cube data
-Vertex cubeVertices[] = {
-    {{-1,-1,-1}, {1,0,0}}, {{-1, 1,-1}, {0,1,0}}, {{1, 1,-1}, {0,0,1}}, {{1,-1,-1}, {1,1,0}},
-    {{-1,-1, 1}, {1,0,1}}, {{-1, 1, 1}, {0,1,1}}, {{1, 1, 1}, {1,1,1}}, {{1,-1, 1}, {0,0,0}},
-};
-
-uint16_t cubeIndices[] = {
-    0,1,2, 0,2,3,  4,6,5, 4,7,6,
-    4,5,1, 4,1,0,  3,2,6, 3,6,7,
-    1,5,6, 1,6,2,  4,0,3, 4,3,7,
-};
 
 int main() {
 
@@ -160,7 +155,6 @@ int main() {
 
                 imageData[i + j * (uint32_t)width] = colori;
             }
-
 
         image->SetData(imageData);
         auto imageUploadFenceValue = ++fenceValue;
@@ -224,7 +218,8 @@ int main() {
                 height = imguiWindowWidth * aspectRatio;
                 ImGui::SetCursorPosY((imguiWindowHeight - height) * 0.5f);
             }
-            ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+            // ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+            ImGui::Image((ImTextureID)quadColorAttachmentHandle.Get(), ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
 
             bool hovering = ImGui::IsItemHovered();
             bool leftMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
@@ -269,19 +264,37 @@ int main() {
             }
         }
         ImGui::Render();
-            
+       
+        std::vector<CubeAABB> cubes;
+        cubes.push_back({
+            glm::vec3{ -1.0f, -1.0f, -1.0f },
+            glm::vec3{  1.0f,  1.0f,  1.0f }
+        });
+
+        // Quad render pass
+        commandList->open();
+        commandList->beginMarker("Quad Render Pass");
+        quadPipeline->Render(commandList, image->GetTexture(), quadTextureSampler, camera->GetWidth(), camera->GetHeight());
+        cubePipeline->Render(commandList, cubes, {camera->GetViewProjection()}, camera->GetWidth(), camera->GetHeight());
+        commandList->endMarker();
+        commandList->close();
+        nvrhiDevice->executeCommandList(commandList);
+        nvrhiDevice->waitForIdle();
+
         // Get the current back buffer
         auto backBufferIndex = swapChain->GetCurrentBackBufferIndex();
         auto backFrameBuffer = swapChainFrameBufferHandles[backBufferIndex];
         
-        // Rendering
+        // Swap chain render pass
         commandList->open();
+        commandList->beginMarker("Swap Chain Render Pass");
         commandList->setResourceStatesForFramebuffer(backFrameBuffer);
         nvrhi::utils::ClearColorAttachment(
             commandList, 
             backFrameBuffer, 
             0,
             nvrhi::Color(0.1f, 0.1f, 0.1f, 0.5f));
+        commandList->endMarker();
         commandList->close();
         nvrhiDevice->executeCommandList(commandList);
 
@@ -408,6 +421,43 @@ void CreateSwapChainRenderTargets()
         // Create resources
         commandList = nvrhiDevice->createCommandList();
         
+        // Assume width and height already defined
+        nvrhi::TextureDesc colorAttachmentTextureDesc;
+        colorAttachmentTextureDesc.width = viewportWidth;
+        colorAttachmentTextureDesc.height = viewportHeight;
+        colorAttachmentTextureDesc.format = nvrhi::Format::RGBA8_UNORM;
+        colorAttachmentTextureDesc.isRenderTarget = true;
+        colorAttachmentTextureDesc.initialState = nvrhi::ResourceStates::RenderTarget;
+        colorAttachmentTextureDesc.debugName = "QuadRT";
+        colorAttachmentTextureDesc.keepInitialState = true;
+        colorAttachmentTextureDesc.setClearValue({ 0.0f, 0.0f, 0.0f, 1.0f });
+
+        nvrhi::TextureDesc depthAttachmentTextureDesc;
+        depthAttachmentTextureDesc.width = viewportWidth;
+        depthAttachmentTextureDesc.height = viewportHeight;
+        depthAttachmentTextureDesc.format = nvrhi::Format::D32;
+        depthAttachmentTextureDesc.isRenderTarget = true;
+        depthAttachmentTextureDesc.initialState = nvrhi::ResourceStates::DepthWrite;
+        depthAttachmentTextureDesc.debugName = "QuadDepth";
+        depthAttachmentTextureDesc.keepInitialState = true;
+        depthAttachmentTextureDesc.setClearValue(1.0f);
+
+        quadColorAttachmentHandle = nvrhiDevice->createTexture(colorAttachmentTextureDesc);
+        quadDepthAttachmentHandle = nvrhiDevice->createTexture(depthAttachmentTextureDesc);
+
+        nvrhi::FramebufferDesc framebufferDesc;
+        framebufferDesc.addColorAttachment(quadColorAttachmentHandle);
+        framebufferDesc.setDepthAttachment(quadDepthAttachmentHandle);
+
+        quadFrameBuffer = nvrhiDevice->createFramebuffer(framebufferDesc);
+
+        auto samplerDesc = nvrhi::SamplerDesc();
+        quadTextureSampler = nvrhiDevice->createSampler(samplerDesc);
+
+        quadPipeline = std::make_shared<FullscreenQuadPipeline>(nvrhiDevice, quadFrameBuffer);
+        
+        cubePipeline = std::make_shared<CubePipeline>(nvrhiDevice, quadFrameBuffer);
+
         imageData = new uint32_t[viewportWidth * viewportHeight];
         for (uint32_t i = 0; i < viewportWidth * viewportHeight; ++i)
         {

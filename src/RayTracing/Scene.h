@@ -30,10 +30,16 @@ public:
             std::make_unique<LambertianMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
         );
         circle4->SetTranslation(glm::vec3{ 0.0f, 1.0f, 2.3f });
+        auto circle5 = std::make_shared<SimplePrimitive>(
+            std::make_shared<Circle>(1.0f),
+            std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 0.7, 0.8f }, 0.1f)
+        );
+        circle5->SetTranslation(glm::vec3{ 0.0f, 1.0f, -2.3f });
         m_Primitives.AddItem(circle);
         m_Primitives.AddItem(circle2);
         m_Primitives.AddItem(circle3);
         m_Primitives.AddItem(circle4);
+        m_Primitives.AddItem(circle5);
         auto quad = std::make_shared<SimplePrimitive>(
             std::make_shared<Quad>(10.0f, 10.0f),
             std::make_unique<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})

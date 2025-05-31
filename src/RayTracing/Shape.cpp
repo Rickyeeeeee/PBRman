@@ -49,6 +49,14 @@ void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
 
 }
 
+AABB Circle::GetAABB() const
+{
+    return AABB{
+        glm::vec3{ -m_Radius },
+        glm::vec3{  m_Radius }
+    };
+}
+
 void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 {
     if (fabs(ray.Direction.y) < 1e-8f)
@@ -75,6 +83,14 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     {
         intersect->HasIntersection = false;
     }
+}
+
+AABB Quad::GetAABB() const
+{
+    return AABB{
+		glm::vec3{ -m_Width / 2.0f, -0.001f, -m_Height / 2.0f },
+		glm::vec3{  m_Width / 2.0f,  0.001f,  m_Height / 2.0f }
+    };
 }
 
 void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
@@ -118,4 +134,13 @@ void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     {
         intersect->IsFrontFace = true;
     }
+}
+
+AABB Triangle::GetAABB() const
+{
+    return AABB
+    {
+		glm::min(m_Vertices[0], glm::min(m_Vertices[1], m_Vertices[2])),
+		glm::max(m_Vertices[0], glm::max(m_Vertices[1], m_Vertices[2]))
+    };
 }
