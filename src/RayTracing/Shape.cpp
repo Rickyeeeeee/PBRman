@@ -51,7 +51,7 @@ void Circle::Intersect(const Ray &ray, SurfaceInteraction* intersect) const
 
 }
 
-AABB Circle::GetAABB() const
+AABB Circle::GetAABB(Transform* transform) const
 {
     return AABB{
         glm::vec3{ -m_Radius },
@@ -87,7 +87,7 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     }
 }
 
-AABB Quad::GetAABB() const
+AABB Quad::GetAABB(Transform* transform) const
 {
     return AABB{
 		glm::vec3{ -m_Width / 2.0f, -tMin, -m_Height / 2.0f },
@@ -138,7 +138,7 @@ void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
     }
 }
 
-AABB Triangle::GetAABB() const
+AABB Triangle::GetAABB(Transform* transform) const
 {
     return AABB
     {

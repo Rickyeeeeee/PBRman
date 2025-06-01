@@ -141,4 +141,26 @@ struct AABB
             glm::max(box1.Min, box2.Min)
         };
     }
+
+    AABB TransformAndBound(Transform* transform)
+    {
+        glm::vec3 v[8] = {
+            { Max.x, Max.y, Max.z },
+            { Max.x, Max.y, Min.z },
+            { Max.x, Min.y, Max.z },
+            { Max.x, Min.y, Min.z },
+            { Min.x, Max.y, Max.z },
+            { Min.x, Max.y, Min.z },
+            { Min.x, Min.y, Max.z },
+            { Min.x, Min.y, Min.z },
+        };
+
+        glm::vec3 newMin { std::numeric_limits<float>::lowest() };
+        glm::vec3 newMax { std::numeric_limits<float>::max()    };
+
+        for (int i = 0; i < 8; i++)
+        {
+            
+        }
+    }
 };

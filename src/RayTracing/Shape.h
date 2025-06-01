@@ -21,7 +21,7 @@ public:
     Shape() {};
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const = 0;
     // TODO: Add Transform parameter
-    virtual AABB GetAABB() const = 0;
+    virtual AABB GetAABB(Transform* transform) const = 0;
 };
 
 class Circle : public Shape
@@ -30,7 +30,7 @@ public:
     Circle(float radius=1.0f) : m_Radius(radius), Shape() {};
 
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
-    virtual AABB GetAABB() const override;
+    virtual AABB GetAABB(Transform* transform) const override;
     
     private:
     float m_Radius{ 1.0f };
@@ -42,7 +42,7 @@ class Quad : public Shape
     Quad(float width=1.0f, float height=1.0f) : m_Width(width), m_Height(height) {}
     
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
-    virtual AABB GetAABB() const override;
+    virtual AABB GetAABB(Transform* transform) const override;
 
 private:
     float m_Width;
@@ -80,7 +80,7 @@ public:
     }
 
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) const override;
-    virtual AABB GetAABB() const override;
+    virtual AABB GetAABB(Transform* transform) const override;
 
 private:
     glm::vec3 m_Vertices[3];
