@@ -23,8 +23,8 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
     if (indices.size() % 3 != 0)
         std::cout << "Indice size is not 3 * n" << std::endl;
     auto count = indices.size() / 3;
-    // count = 1000;
-    m_TraingleList.reserve(count);
+    count = 2;
+    m_TriangleList.reserve(count);
 
     for (int i = 0; i < count; i++)
     {
@@ -35,7 +35,7 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
         normal = glm::normalize(glm::cross(vertices[i1]-vertices[i0], vertices[i2]-vertices[i0]));
         if (genNormal || normals.size() == 0)
         {
-            m_TraingleList.push_back(Triangle(
+            m_TriangleList.push_back(Triangle(
                 vertices[i0] * 1.0f,
                 vertices[i1] * 1.0f,
                 vertices[i2] * 1.0f,
@@ -49,7 +49,7 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
         }
         else
         {
-            m_TraingleList.push_back(Triangle(
+            m_TriangleList.push_back(Triangle(
                 vertices[i0] * 1.0f,
                 vertices[i1] * 1.0f,
                 vertices[i2] * 1.0f,
@@ -73,9 +73,9 @@ void TriangleList::Intersect(const Ray& ray, SurfaceInteraction* intersect)
     float minDistance = std::numeric_limits<float>::max();
     int minIndex = -1;
     SurfaceInteraction minSurfaceInteraction;
-	for (uint32_t i = 0; i < m_TraingleList.size(); i++)
+	for (uint32_t i = 0; i < m_TriangleList.size(); i++)
 	{
-        auto& triangle = m_TraingleList[i];
+        auto& triangle = m_TriangleList[i];
 		SurfaceInteraction si;
 		triangle.Intersect(rayLocal, &si);
 		if (si.HasIntersection)
@@ -131,4 +131,20 @@ void PrimitiveList::Intersect(const Ray& ray, SurfaceInteraction* intersect)
     }
 
     intersect->HasIntersection = false;
+}
+
+std::vector<std::shared_ptr<SimplePrimitive>> TriangleList::GetPrimitives() const
+{
+    std::vector<std::shared_ptr<SimplePrimitive>> primitives;
+    primitives.reserve(m_TriangleList.size());
+    for (const auto& primitive : m_TriangleList)
+    {
+        primitives.push_back(std::make_shared<SimplePrimitive>(
+            std::make_shared<Triangle>(primitive), 
+            m_Material,
+            m_Transform
+        ));
+    }
+
+    return primitives;
 }

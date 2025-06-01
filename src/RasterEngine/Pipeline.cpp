@@ -36,6 +36,16 @@ FullscreenQuadPipeline::~FullscreenQuadPipeline()
     // Resources are released automatically by their handles
 }
 
+void FullscreenQuadPipeline::BindTexture(nvrhi::ITexture* texture, nvrhi::ISampler* sampler)
+{
+        // Create binding set
+    nvrhi::BindingSetDesc bindingSetDesc;
+    bindingSetDesc.addItem(nvrhi::BindingSetItem::Texture_SRV(0, texture));
+    bindingSetDesc.addItem(nvrhi::BindingSetItem::Sampler(0, sampler));
+
+    m_BindingSet = m_Device->createBindingSet(bindingSetDesc, m_BindingLayout);
+}
+
 void FullscreenQuadPipeline::CreateVertexBuffer()
 {
     nvrhi::BufferDesc vbDesc = nvrhi::BufferDesc()
@@ -104,21 +114,14 @@ void FullscreenQuadPipeline::CreatePipeline()
     m_Pipeline = m_Device->createGraphicsPipeline(pipelineDesc, m_Framebuffer);
 }
 
-void FullscreenQuadPipeline::Render(nvrhi::ICommandList* commandList, nvrhi::ITexture* texture, nvrhi::ISampler* sampler, float width, float height)
+void FullscreenQuadPipeline::Render(nvrhi::ICommandList* commandList, float width, float height)
 {
-    // Create binding set
-    nvrhi::BindingSetDesc bindingSetDesc;
-    bindingSetDesc.addItem(nvrhi::BindingSetItem::Texture_SRV(0, texture));
-    bindingSetDesc.addItem(nvrhi::BindingSetItem::Sampler(0, sampler));
-
-    nvrhi::BindingSetHandle bindingSet = m_Device->createBindingSet(bindingSetDesc, m_BindingLayout);
-
     // Set graphics state
     nvrhi::GraphicsState state = nvrhi::GraphicsState()
         .setPipeline(m_Pipeline)
         .setFramebuffer(m_Framebuffer)
         .setViewport(nvrhi::ViewportState().addViewportAndScissorRect(nvrhi::Viewport(width, height)))
-        .addBindingSet(bindingSet)
+        .addBindingSet(m_BindingSet)
         .addVertexBuffer(nvrhi::VertexBufferBinding().setBuffer(m_VertexBuffer));
     commandList->setGraphicsState(state);
     commandList->setResourceStatesForFramebuffer(m_Framebuffer);

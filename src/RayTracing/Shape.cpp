@@ -56,7 +56,7 @@ AABB Circle::GetAABB(Transform* transform) const
     return AABB{
         glm::vec3{ -m_Radius },
         glm::vec3{  m_Radius }
-    };
+    }.TransformAndBound(transform);
 }
 
 void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
@@ -89,10 +89,23 @@ void Quad::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 
 AABB Quad::GetAABB(Transform* transform) const
 {
-    return AABB{
-		glm::vec3{ -m_Width / 2.0f, -tMin, -m_Height / 2.0f },
-		glm::vec3{  m_Width / 2.0f,  tMin,  m_Height / 2.0f }
+    glm::vec3 min;
+    glm::vec3 max;
+
+    glm::vec3 v[4] = {
+        TransformPoint(transform->GetMat(), glm::vec3{  m_Width / 2.0f, 0.0f,  m_Height / 2.0f }),
+        TransformPoint(transform->GetMat(), glm::vec3{  m_Width / 2.0f, 0.0f, -m_Height / 2.0f }),
+        TransformPoint(transform->GetMat(), glm::vec3{ -m_Width / 2.0f, 0.0f,  m_Height / 2.0f }),
+        TransformPoint(transform->GetMat(), glm::vec3{ -m_Width / 2.0f, 0.0f, -m_Height / 2.0f }),
     };
+
+    for (int i = 0; i < 4; i++)
+    {
+        min = glm::min(min, v[i]);
+        max = glm::max(max, v[i]);
+    }
+
+    return AABB{ min, max };
 }
 
 void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
@@ -140,9 +153,19 @@ void Triangle::Intersect(const Ray& ray, SurfaceInteraction* intersect) const
 
 AABB Triangle::GetAABB(Transform* transform) const
 {
-    return AABB
-    {
-		glm::min(m_Vertices[0], glm::min(m_Vertices[1], m_Vertices[2])),
-		glm::max(m_Vertices[0], glm::max(m_Vertices[1], m_Vertices[2]))
+    AABB bound;
+
+    glm::vec3 v[3] = {
+        TransformPoint(transform->GetMat(), m_Vertices[0]),
+        TransformPoint(transform->GetMat(), m_Vertices[1]),
+        TransformPoint(transform->GetMat(), m_Vertices[2]),
     };
+
+    for (int i = 0; i < 3; i++)
+    {
+        bound.Min = glm::min(bound.Min, v[i]);
+        bound.Max = glm::max(bound.Max, v[i]);
+    }
+
+    return bound;
 }

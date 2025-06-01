@@ -12,7 +12,8 @@ public:
     FullscreenQuadPipeline(nvrhi::IDevice* device, nvrhi::IFramebuffer* framebuffer);
     ~FullscreenQuadPipeline();
 
-    void Render(nvrhi::ICommandList* commandList, nvrhi::ITexture* texture, nvrhi::ISampler* sampler, float width, float height);
+    void BindTexture(nvrhi::ITexture* texture, nvrhi::ISampler* sampler);
+    void Render(nvrhi::ICommandList* commandList, float width, float height);
 
 private:
     void CreateVertexBuffer();
@@ -29,6 +30,7 @@ private:
     nvrhi::ShaderHandle m_PixelShader;
     nvrhi::BindingLayoutHandle m_BindingLayout;
     nvrhi::GraphicsPipelineHandle m_Pipeline;
+    nvrhi::BindingSetHandle m_BindingSet;
 };
 // AABB definition
 struct CubeAABB

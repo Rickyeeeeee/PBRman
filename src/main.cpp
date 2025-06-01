@@ -125,6 +125,7 @@ int main() {
     bool show_demo_window = false;
     bool show_image = true;
     int accumulateCount = 0;
+    int BVHDebugDepth = 0;
 
     RayRenderer renderer;
 
@@ -185,6 +186,7 @@ int main() {
             ImGui::Checkbox("Another Window", &show_image);
 
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+            ImGui::SliderInt("BVH Debug Depth", &BVHDebugDepth, 0, 10);
 
             if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
@@ -266,15 +268,23 @@ int main() {
         ImGui::Render();
        
         std::vector<CubeAABB> cubes;
-        cubes.push_back({
-            glm::vec3{ -1.0f, -1.0f, -1.0f },
-            glm::vec3{  1.0f,  1.0f,  1.0f }
+
+        scene->GetBVH().Traverse([&](int depth, const AABB& bound) {
+            if (depth == BVHDebugDepth)
+                cubes.push_back({
+                    bound.Min, bound.Max
+                });
         });
+
+        // cubes.push_back({
+        //     glm::vec3{ -1.0f, -1.0f, -1.0f },
+        //     glm::vec3{  1.0f,  1.0f,  1.0f }
+        // });
 
         // Quad render pass
         commandList->open();
         commandList->beginMarker("Quad Texture Render Pass");
-        quadPipeline->Render(commandList, image->GetTexture(), quadTextureSampler, camera->GetWidth(), camera->GetHeight());
+        quadPipeline->Render(commandList, camera->GetWidth(), camera->GetHeight());
         commandList->endMarker();
         commandList->beginMarker("Quad Debug Cube Render Pass");
         cubePipeline->Render(commandList, cubes, {camera->GetViewProjection()}, camera->GetWidth(), camera->GetHeight());
@@ -473,6 +483,8 @@ void CreateSwapChainRenderTargets()
         
         image = std::make_shared<Image>(viewportWidth, viewportHeight, nvrhiDevice, commandList);
         image->SetData(imageData);
+
+        quadPipeline->BindTexture(image->GetTexture(), quadTextureSampler);
 
         auto fenceValueForSignal = ++fenceValue;
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));

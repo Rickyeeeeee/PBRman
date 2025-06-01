@@ -131,15 +131,35 @@ inline glm::vec3 TransformPoint(const glm::mat4& mat, const glm::vec3& point)
 
 struct AABB
 {
-    glm::vec3 Min{ 0.0f };
-    glm::vec3 Max{ 0.0f };
+    glm::vec3 Min{ std::numeric_limits<float>::max() };
+    glm::vec3 Max{ std::numeric_limits<float>::lowest() };
 
     static AABB Union(const AABB& box1, const AABB& box2)
     {
         return AABB{
             glm::min(box1.Min, box2.Min),
-            glm::max(box1.Min, box2.Min)
+            glm::max(box1.Max, box2.Max)
         };
+    }
+
+    static AABB Union(const AABB& bound, const glm::vec3& point)
+    {
+        return AABB{
+            glm::min(bound.Min, point),
+            glm::max(bound.Max, point)
+        };
+    }
+
+    int MaxExtent() const
+    {
+        auto extent = Max - Min;
+
+        if (extent.x >= extent.y && extent.x >= extent.z)
+            return 0;
+        else if (extent.y >= extent.x && extent.y >= extent.z)
+            return 1;
+        else
+            return 2;
     }
 
     AABB TransformAndBound(Transform* transform)
@@ -155,10 +175,10 @@ struct AABB
             { Min.x, Min.y, Min.z },
         };
 
-        glm::vec3 newMin { std::numeric_limits<float>::lowest() };
-        glm::vec3 newMax { std::numeric_limits<float>::max()    };
+        glm::vec3 newMin { TransformPoint(transform->GetMat(), v[0]) };
+        glm::vec3 newMax { TransformPoint(transform->GetMat(), v[0]) };
 
-        for (int i = 0; i < 8; i++)
+        for (int i = 1; i < 8; i++)
         {
             auto p = TransformPoint(transform->GetMat(), v[i]);
 

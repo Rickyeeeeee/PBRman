@@ -3,12 +3,15 @@
 #include "Primitive.h"
 #include <vector>
 #include "Core/Mesh.h"
+#include "BVH.h"
 
 class Scene
 {
 public:
     Scene() 
     {
+        std::vector<std::shared_ptr<SimplePrimitive>> simplePrimitives;
+
         auto circle = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
@@ -17,7 +20,7 @@ public:
         circle->SetTransform(
             glm::vec3{ 1.5f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 0.0f, 2.0f, 0.0f }
+            glm::vec3{ 0.0f, 1.0f, 0.0f }
         );
         auto circle2 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -44,7 +47,7 @@ public:
         circle4->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 0.0f, 1.0f, 2.3f }
+            glm::vec3{ 4.0f, 1.0f, 0.0f }
         );
         auto circle5 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -53,13 +56,18 @@ public:
         circle5->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 0.0f, 1.0f, -2.3f }
+            glm::vec3{ -4.0f, 1.0f, 0.0f }
         );
         m_Primitives.AddItem(circle);
         m_Primitives.AddItem(circle2);
         m_Primitives.AddItem(circle3);
         m_Primitives.AddItem(circle4);
         m_Primitives.AddItem(circle5);
+        simplePrimitives.push_back(circle);
+        simplePrimitives.push_back(circle2);
+        simplePrimitives.push_back(circle3);
+        simplePrimitives.push_back(circle4);
+        simplePrimitives.push_back(circle5);
         auto quad = std::make_shared<SimplePrimitive>(
             std::make_shared<Quad>(10.0f, 10.0f),
             std::make_unique<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
@@ -70,6 +78,7 @@ public:
             glm::vec3{ -1.0f, -1.0f, -1.0f }
         );
         m_Primitives.AddItem(quad);
+        simplePrimitives.push_back(quad);
         auto tri = std::make_shared<SimplePrimitive>(
             std::make_shared<Triangle>(
                 glm::vec3{ 5.0f, 0.0f, 5.0f },
@@ -97,16 +106,19 @@ public:
 
         auto triMesh = std::make_shared<TriangleList>(
             *ply,
-            std::make_unique<DielectricMaterial>(0.9f)
+            // std::make_unique<DielectricMaterial>(0.9f)
             // std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
-            // std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.85f})
+            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.85f})
         );
         triMesh->SetTransform(
-            glm::vec3{ 5.0f },
+            glm::vec3{ 2.0f },
             glm::vec3{ 10.0f, 20.0f, 30.0f },
-            glm::vec3{ 0.0f, 10.0f, 0.0f }
+            glm::vec3{ 0.0f, 5.0f, 0.0f }
         );
         m_Primitives.AddItem(triMesh);
+        auto triangles = triMesh->GetPrimitives();
+        simplePrimitives.insert(simplePrimitives.begin(), triangles.begin(), triangles.end());
+        m_BVH = std::make_shared<BVH>(simplePrimitives);
     }
 
     void Intersect(const Ray& ray, SurfaceInteraction* intersect)
@@ -114,6 +126,14 @@ public:
         m_Primitives.Intersect(ray, intersect);
     }
 
+    // FOr debug purposes
+    BVH& GetBVH() 
+
+    {
+        return *m_BVH;
+    }
+
 private:
     PrimitiveList m_Primitives;
+    std::shared_ptr<BVH> m_BVH;
 };

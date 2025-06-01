@@ -15,11 +15,12 @@ public:
 class SimplePrimitive : public Primitive
 {
 public:
-    SimplePrimitive(std::shared_ptr<Shape> shape, std::shared_ptr<Material> material)
-        : m_Shape(shape), m_Material(material) {}
+    SimplePrimitive(std::shared_ptr<Shape> shape, std::shared_ptr<Material> material, Transform transform=Transform())
+        : m_Shape(shape), m_Material(material), m_Transform(transform) {}
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) override;
     Shape& GetShape() { return *m_Shape; }
     Material& GetMaterial()                     { return *m_Material; }
+
     Transform GetTransform() const              { return m_Transform; }
     void SetTransform(const Transform& trans)   { m_Transform = trans; }
     void SetTransform(
@@ -29,6 +30,11 @@ public:
     { 
         m_Transform = Transform();
         m_Transform.Set(scale, glm::radians(eulerAngles), translation);
+    }
+
+    AABB GetAABB()
+    {
+        return m_Shape->GetAABB(&m_Transform);
     }
 private:
     std::shared_ptr<Shape> m_Shape;
@@ -57,6 +63,7 @@ public:
     TriangleList(const Mesh& mesh, std::shared_ptr<Material> material);
     virtual void Intersect(const Ray& ray, SurfaceInteraction* intersect) override;
     Transform GetTransform() const              { return m_Transform; }
+    std::vector<std::shared_ptr<SimplePrimitive>> GetPrimitives() const;
     void SetTransform(const Transform& trans)   { m_Transform = trans; }
     void SetTransform(
         const glm::vec3& scale, 
@@ -67,7 +74,7 @@ public:
         m_Transform.Set(scale, glm::radians(eulerAngles), translation);
     }
 private:
-    std::vector<Triangle>       m_TraingleList;
+    std::vector<Triangle>       m_TriangleList;
     std::shared_ptr<Material>   m_Material;
     Transform                   m_Transform;
 };

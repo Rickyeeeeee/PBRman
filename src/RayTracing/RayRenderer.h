@@ -23,7 +23,7 @@ private:
     std::shared_ptr<Scene> m_Scene;
     std::shared_ptr<Camera> m_Camera;
 
-    glm::vec3 m_SkyLight{ 0.3f, 0.3f, 0.4f };
+    glm::vec3 m_SkyLight{ 0.5f, 0.5f, 0.6f };
     // glm::vec3 m_SkyLight{ 0.0f };
     glm::vec3 m_SkyLightDirection = glm::normalize(glm::vec3{ 1.0f, 1.0f, 1.0f });
 
