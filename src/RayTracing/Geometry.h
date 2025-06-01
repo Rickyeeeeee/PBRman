@@ -160,7 +160,15 @@ struct AABB
 
         for (int i = 0; i < 8; i++)
         {
-            
+            auto p = TransformPoint(transform->GetMat(), v[i]);
+
+            newMax = glm::max(newMax, p);
+            newMin = glm::min(newMin, p);
         }
+
+        return AABB{
+            newMin,
+            newMax
+        };
     }
 };
