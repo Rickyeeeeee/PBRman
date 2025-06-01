@@ -71,7 +71,9 @@ struct LinearBVHNode
         int PrimitivesOffset;   // leaf
         int SecondChildOffset;  // interior
     };
-    uint32_t nPrimitives;  // 0 -> interior node
+    uint16_t nPrimitives;  // 0 -> interior node
+    uint8_t axis;
+    uint8_t pad[1];
 };
 
 class BVH : Primitive
@@ -94,24 +96,7 @@ private:
         std::vector<std::shared_ptr<SimplePrimitive>>& orderedPrims
     );
 
-    int FlattenBVHTree(BVHBuildNode* node, int* offset)
-    {
-        LinearBVHNode *linearNode = &m_Nodes[*offset];
-        linearNode->Bounds = node->Bounds;
-        int myOffset = (*offset)++;
-        if (node->nPrimitives > 0) {
-            linearNode->PrimitivesOffset = node->FirstPrimOffset;
-            linearNode->nPrimitives = node->nPrimitives;
-        } else {
-            // Create interior flattened BVH node
-            // linearNode->axis = node->splitAxis;
-            linearNode->nPrimitives = 0;
-            FlattenBVHTree(node->Children[0], offset);
-            linearNode->SecondChildOffset =
-                FlattenBVHTree(node->Children[1], offset);
-        }
-        return myOffset;
-    }
+    int FlattenBVHTree(BVHBuildNode* node, int* offset);
 
     std::vector<LinearBVHNode> m_Nodes;
     std::vector<std::shared_ptr<SimplePrimitive>> m_Primitives;

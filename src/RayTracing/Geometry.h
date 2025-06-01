@@ -150,6 +150,28 @@ struct AABB
         };
     }
 
+    bool IntersectP(const Ray& ray) const
+    {
+        float tNear = 0.0f;
+        float tFar = std::numeric_limits<float>::max();
+
+        for (int i = 0; i < 3; i++) {
+            float invD = 1.0f / ray.Direction[i];
+            float t0 = (Min[i] - ray.Origin[i]) * invD;
+            float t1 = (Max[i] - ray.Origin[i]) * invD;
+
+            if (invD < 0.0f) std::swap(t0, t1);
+
+            tNear = std::max(tNear, t0);
+            tFar = std::min(tFar, t1);
+
+            if (tFar < tNear)
+                return false; // No intersection
+        }
+
+        return true;
+    }
+
     int MaxExtent() const
     {
         auto extent = Max - Min;

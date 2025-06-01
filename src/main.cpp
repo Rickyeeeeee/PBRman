@@ -490,7 +490,7 @@ void CreateSwapChainRenderTargets()
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), fenceValueForSignal));
         WaitForFenceValue(frameFence, fenceValueForSignal, frameFenceEvent);
 
-        auto center = glm::vec3{ 0.0f, 0.0f, 10.0f };
+        auto center = glm::vec3{ 0.0f, 0.0f, 5.0f };
         auto focus = glm::vec3{ 0.0f };
         camera = std::make_shared<Camera>(
             center,

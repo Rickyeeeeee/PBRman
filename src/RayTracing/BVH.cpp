@@ -26,6 +26,8 @@ BVH::BVH(std::vector<std::shared_ptr<SimplePrimitive>> primitives)
 
     root = RecursiveBuild(nodePool, primitiveInfos, 0, m_Primitives.size(), &totalNodes, orderedPrims);
 
+    m_Primitives = orderedPrims;
+
     m_Nodes.resize(totalNodes);
 
     int offset = 0;
@@ -34,7 +36,67 @@ BVH::BVH(std::vector<std::shared_ptr<SimplePrimitive>> primitives)
 
 void BVH::Intersect(const Ray& ray, SurfaceInteraction* intersect)
 {
-    
+    if (m_Nodes.empty()) 
+    {
+        return;
+    }
+
+    glm::vec3 invDir(1 / ray.Direction.x, 1 / ray.Direction.y, 1 / ray.Direction.z);
+    int dirIsNeg[3] = { invDir.x < 0, invDir.y < 0, invDir.z < 0 };
+
+    // Follow ray through BVH nodes to find primitive intersections
+    int toVisitOffset = 0, currentNodeIndex = 0;
+    int nodesToVisit[64];
+
+    float minDistance = std::numeric_limits<float>::max();
+    int minIndex = -1;
+    SurfaceInteraction minSurfaceInteraction;
+
+    while (true) {
+        const LinearBVHNode *node = &m_Nodes[currentNodeIndex];
+        // Check ray against BVH node
+        if (node->Bounds.IntersectP(ray)) {
+            if (node->nPrimitives > 0) {
+                // Intersect ray with primitives in leaf BVH node
+                for (int i = 0; i < node->nPrimitives; ++i)
+                {
+                    SurfaceInteraction si;
+                    m_Primitives[node->PrimitivesOffset + i]->Intersect(ray, &si);
+                    auto disVec = ray.Origin - si.Position;
+                    auto distance2 = glm::dot(disVec, disVec);
+                    if (si.HasIntersection && distance2 < minDistance)
+                    {
+                        minDistance = distance2;
+                        minIndex = 0;
+                        minSurfaceInteraction = si;
+                    }
+                }
+                if (toVisitOffset == 0) break;
+                currentNodeIndex = nodesToVisit[--toVisitOffset];
+            } else {
+                // Put far BVH node on _nodesToVisit_ stack, advance to near
+                // node
+                if (dirIsNeg[node->axis]) {
+                    nodesToVisit[toVisitOffset++] = node->SecondChildOffset;
+                    currentNodeIndex = currentNodeIndex + 1;
+                } else {
+                    nodesToVisit[toVisitOffset++] = currentNodeIndex + 1;
+                    currentNodeIndex = node->SecondChildOffset;
+                }
+            }
+        } else {
+            if (toVisitOffset == 0) break;
+            currentNodeIndex = nodesToVisit[--toVisitOffset];
+        }
+    }
+
+    if (minIndex >= 0)
+    {
+        *intersect = minSurfaceInteraction;
+        return;
+    }
+
+    intersect->HasIntersection = false;
 }
 
 void BVH::Traverse(std::function<void(int, const AABB&)> callback)
@@ -117,22 +179,57 @@ BVHBuildNode* BVH::RecursiveBuild(
         }
         else
         {
-            // Partition primitives into equally-sized subsets
-            mid = (start + end) / 2;
-            std::nth_element(&primitiveInfo[start], &primitiveInfo[mid],
-                &primitiveInfo[end - 1] + 1,
-                [dim](const BVHPrimitiveInfo &a,
-                    const BVHPrimitiveInfo &b) {
-                    return a.Centroid[dim] < b.Centroid[dim];
-                });
-
+            int method = 1;
+            if (method == 0)
+            {
+                // Partition primitives into equally-sized subsets
+                mid = (start + end) / 2;
+                std::nth_element(&primitiveInfo[start], &primitiveInfo[mid],
+                    &primitiveInfo[end - 1] + 1,
+                    [dim](const BVHPrimitiveInfo &a,
+                        const BVHPrimitiveInfo &b) {
+                        return a.Centroid[dim] < b.Centroid[dim];
+                    });
+            }
+            else
+            {
+                 // Partition primitives into equally-sized subsets
+                mid = (start + end) / 2;
+                std::nth_element(&primitiveInfo[start], &primitiveInfo[mid],
+                    &primitiveInfo[end - 1] + 1,
+                    [dim](const BVHPrimitiveInfo &a,
+                        const BVHPrimitiveInfo &b) {
+                        return a.Centroid[dim] < b.Centroid[dim];
+                    });
+            }
+            
             node->InitInterior(dim, 
                 RecursiveBuild(nodePool, primitiveInfo, start, mid, totalNodes, orderedPrims),
                 RecursiveBuild(nodePool, primitiveInfo, mid, end, totalNodes, orderedPrims)
             );
+            
         }
         
     }
     
     return node;
+}
+
+int BVH::FlattenBVHTree(BVHBuildNode* node, int* offset)
+{
+    LinearBVHNode *linearNode = &m_Nodes[*offset];
+    linearNode->Bounds = node->Bounds;
+    int myOffset = (*offset)++;
+    if (node->nPrimitives > 0) {
+        linearNode->PrimitivesOffset = node->FirstPrimOffset;
+        linearNode->nPrimitives = node->nPrimitives;
+    } else {
+        // Create interior flattened BVH node
+        linearNode->axis = node->SplitAxis;
+        linearNode->nPrimitives = 0;
+        FlattenBVHTree(node->Children[0], offset);
+        linearNode->SecondChildOffset =
+            FlattenBVHTree(node->Children[1], offset);
+    }
+    return myOffset;
 }

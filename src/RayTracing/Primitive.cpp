@@ -11,7 +11,7 @@ void SimplePrimitive::Intersect(const Ray& ray, SurfaceInteraction* intersect)
     intersect->Material = m_Material.get();
 }
 
-static bool genNormal = true;
+static bool genNormal = false;
 
 TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
     : m_Material(material)
@@ -23,7 +23,6 @@ TriangleList::TriangleList(const Mesh& mesh, std::shared_ptr<Material> material)
     if (indices.size() % 3 != 0)
         std::cout << "Indice size is not 3 * n" << std::endl;
     auto count = indices.size() / 3;
-    count = 2;
     m_TriangleList.reserve(count);
 
     for (int i = 0; i < count; i++)
