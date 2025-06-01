@@ -103,10 +103,10 @@ glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
             scatteredRay.Normalize();
 
             // Direct Lighting
-            SurfaceInteraction visiblity;
-            m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
-            if (!visiblity.HasIntersection)
-                L += attenuation * glm::vec3{ 0.3f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
+            // SurfaceInteraction visiblity;
+            // m_Scene->Intersect(Ray{ intersect.Position, m_SkyLightDirection }, &visiblity);
+            // if (!visiblity.HasIntersection)
+            //     L += attenuation * glm::vec3{ 0.3f } * glm::clamp(glm::dot(intersect.Normal, m_SkyLightDirection), 0.0f, 1.0f);
 
             // Indirect Lighting
             L += attenuation * TraceRay(scatteredRay, depth-1);
@@ -115,7 +115,7 @@ glm::vec3 RayRenderer::TraceRay(const Ray& ray, int depth)
     }
     else
     {
-        L += m_SkyLight;
+        L += m_SkyLight * 0.3f;
     }
     
     return L;

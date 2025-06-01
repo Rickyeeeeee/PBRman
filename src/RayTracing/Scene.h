@@ -16,7 +16,7 @@ public:
             std::make_shared<Circle>(1.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
             // std::make_unique<DielectricMaterial>(0.9f)
-            std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f })
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 1.0f })
         );
         circle->SetTransform(
             glm::vec3{ 5.0f },
@@ -43,7 +43,8 @@ public:
         );
         auto circle4 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
-            std::make_unique<LambertianMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
+            // std::make_unique<LambertianMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
+            std::make_shared<DielectricMaterial>(0.9f)
         );
         circle4->SetTransform(
             glm::vec3{ 1.0f },
@@ -59,11 +60,11 @@ public:
             glm::vec3{ 0.0f },
             glm::vec3{ -4.0f, 1.0f, 0.0f }
         );
-        // m_Primitives.AddItem(circle);
-        // m_Primitives.AddItem(circle2);
-        // m_Primitives.AddItem(circle3);
-        // m_Primitives.AddItem(circle4);
-        // m_Primitives.AddItem(circle5);
+        m_Primitives.AddItem(circle);
+        m_Primitives.AddItem(circle2);
+        m_Primitives.AddItem(circle3);
+        m_Primitives.AddItem(circle4);
+        m_Primitives.AddItem(circle5);
         simplePrimitives.push_back(circle);
         simplePrimitives.push_back(circle2);
         simplePrimitives.push_back(circle3);
@@ -78,72 +79,9 @@ public:
             glm::vec3{ 20.0f, 0.0f, 0.0f },
             glm::vec3{ -1.0f, -1.0f, -1.0f }
         );
-        // m_Primitives.AddItem(quad);
+        m_Primitives.AddItem(quad);
         simplePrimitives.push_back(quad);
-        // Triangle 1 – XY plane, facing forward
-        auto tri1 = std::make_shared<SimplePrimitive>(
-            std::make_shared<Triangle>(
-                glm::vec3(-0.5f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 0.5f, 0.0f),
-                glm::vec3(0.5f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 0.0f, 1.0f),
-                glm::vec3(0.0f, 0.0f, 1.0f),
-                glm::vec3(0.0f, 0.0f, 1.0f),
-                glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-            ),
-            std::make_unique<LambertianMaterial>(glm::vec3(0.8f, 0.2f, 0.2f))
-        );
-
-        // Triangle 2 – XZ plane, slightly behind Triangle 1
-        auto tri2 = std::make_shared<SimplePrimitive>(
-            std::make_shared<Triangle>(
-                glm::vec3(-0.5f, -0.5f, -0.1f),
-                glm::vec3(0.0f, -0.5f, -0.6f),
-                glm::vec3(0.5f, -0.5f, -0.1f),
-                glm::vec3(0.0f, 1.0f, 0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f),
-                glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-            ),
-            std::make_unique<LambertianMaterial>(glm::vec3(0.2f, 0.8f, 0.2f))
-        );
-
-        // Triangle 3 – Slanted in space, to the right
-        auto tri3 = std::make_shared<SimplePrimitive>(
-            std::make_shared<Triangle>(
-                glm::vec3(0.6f, -0.3f, -0.2f),
-                glm::vec3(0.6f,  0.3f, -0.2f),
-                glm::vec3(0.6f,  0.0f,  0.3f),
-                glm::normalize(glm::vec3(-1.0f, 1.0f, 1.0f)),
-                glm::normalize(glm::vec3(-1.0f, 1.0f, 1.0f)),
-                glm::normalize(glm::vec3(-1.0f, 1.0f, 1.0f)),
-                glm::vec2(0.0f), glm::vec2(0.0f), glm::vec2(0.0f)
-            ),
-            std::make_unique<LambertianMaterial>(glm::vec3(0.2f, 0.2f, 0.8f))
-        );
-
-        tri1->SetTransform(
-            glm::vec3{ 1 },
-            glm::vec3{ 20.0f, 0.0f, 0.0f },
-            glm::vec3{ 0.0f, 0.0f, 0.0f }
-        );
-        tri2->SetTransform(
-            glm::vec3{ 1 },
-            glm::vec3{ 0.0f, 20.0f, 0.0f },
-            glm::vec3{ 0.0f, 0.0f, 0.0f }
-        );
-        tri3->SetTransform(
-            glm::vec3{ 1 },
-            glm::vec3{ 20.0f, 0.0f, 0.0f },
-            glm::vec3{ 0.0f, 0.0f, 0.0f }
-        );
-        // m_Primitives.AddItem(tri1);
-        // m_Primitives.AddItem(tri2);
-        // m_Primitives.AddItem(tri3);
-        // simplePrimitives.push_back(tri1);
-        // simplePrimitives.push_back(tri2);
-        // simplePrimitives.push_back(tri3);
-
+        
         auto ply = std::make_shared<Mesh>(
             // "../../assets/icosahedron.ply"
             // "../../assets/cube_uv.ply"
@@ -153,8 +91,9 @@ public:
         auto triMesh = std::make_shared<TriangleList>(
             *ply,
             // std::make_unique<DielectricMaterial>(0.9f)
-            std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
-            // std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.85f})
+            // std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
+            // std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f }, 0.1f)
+            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.7f, 0.85f})
         );
         triMesh->SetTransform(
             glm::vec3{ 1.0f },
@@ -175,7 +114,6 @@ public:
 
     // FOr debug purposes
     BVH& GetBVH() 
-
     {
         return *m_BVH;
     }
