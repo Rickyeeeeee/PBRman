@@ -105,6 +105,18 @@ float* accumulationData = nullptr;
 // ImGui objects
 std::shared_ptr<ImGui_NVRHI> nvrhiImgui;
 
+glm::vec3 RRTAndODTFit(const glm::vec3& v) {
+    glm::vec3 a = v * (v + 0.0245786f) - 0.000090537f;
+    glm::vec3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+    return a / b;
+};
+
+glm::vec3 toneMapACES(const glm::vec3& color) {
+    const float exposure = 1.0f;  // or compute per-scene
+    glm::vec3 mapped = RRTAndODTFit(color * exposure);
+    return glm::clamp(mapped, 0.0f, 1.0f);  // use your clamp
+};
+
 int main() {
 
     glm::vec4 color = { 0.5f, 0.6f, 0.2f, 1.0f };
@@ -145,13 +157,29 @@ int main() {
         for (uint32_t i = 0; i < width; i++)
             for (uint32_t j = 0; j < height; j++)
             {
+
                 auto r = accumulationData[(i + j * (uint32_t)width) * 3];
                 auto g = accumulationData[(i + j * (uint32_t)width) * 3 + 1];
                 auto b = accumulationData[(i + j * (uint32_t)width) * 3 + 2];
+
+                glm::vec3 rgb{ r, g, b};
+
+                // Tonemap Reinhard
+                // rgb = rgb / (glm::vec3(1.0f) + rgb);
+
+                // Tonemapping ACES
+                rgb = toneMapACES(rgb);
+
+                // Gamma Correction
+                rgb = glm::pow(rgb, glm::vec3{1.0f / 2.2f});
+
+                // Clamp values
+                rgb = glm::clamp(rgb, 0.0f, 1.0f);
+
                 auto colori = 
-                    (uint32_t)(r * 255.0f) << 0 |
-                    (uint32_t)(g * 255.0f) << 8 |
-                    (uint32_t)(b * 255.0f) << 16 |
+                    static_cast<uint32_t>(rgb.r * 255.0f) << 0 |
+                    static_cast<uint32_t>(rgb.g * 255.0f) << 8 |
+                    static_cast<uint32_t>(rgb.b * 255.0f) << 16 |
                     0xFF000000;
 
                 imageData[i + j * (uint32_t)width] = colori;

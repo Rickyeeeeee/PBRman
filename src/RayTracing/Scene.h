@@ -16,12 +16,36 @@ public:
             std::make_shared<Circle>(1.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
             // std::make_unique<DielectricMaterial>(0.9f)
-            std::make_unique<EmissiveMaterial>(glm::vec3{ 1.0f })
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 10.0f, 5.0f, 5.0f })
         );
         circle->SetTransform(
-            glm::vec3{ 5.0f },
+            glm::vec3{ 2.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 0.0f, 10.0f, 0.0f }
+            glm::vec3{ 5.0f, 6.0f, 0.0f }
+        );
+
+        auto lightQuad = std::make_shared<SimplePrimitive>(
+            std::make_shared<Quad>(8.0f, 8.0f),
+            // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
+            // std::make_unique<DielectricMaterial>(0.9f)
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 3.0f, 5.0f, 2.0f })
+        );
+
+        lightQuad->SetTransform(
+            glm::vec3{ 1.0f },
+            glm::vec3{ 50.0f, 0.0f, 0.0f },
+            glm::vec3{ -4.0f, 7.0f, 7.0f }
+        );
+        auto lightQuad2 = std::make_shared<SimplePrimitive>(
+            std::make_shared<Quad>(8.0f, 8.0f),
+            // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
+            // std::make_unique<DielectricMaterial>(0.9f)
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 6.0f, 2.0f, 1.0f })
+        );
+        lightQuad2->SetTransform(
+            glm::vec3{ 1.0f },
+            glm::vec3{ 50.0f, 0.0f, 0.0f },
+            glm::vec3{ 4.0f, 7.0f, 7.0f }
         );
         auto circle2 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -30,7 +54,7 @@ public:
         circle2->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 2.0f, 1.0f, 0.0f }
+            glm::vec3{ 4.0f, 1.0f, 0.0f }
         );
         auto circle3 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -39,7 +63,7 @@ public:
         circle3->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ -2.0f, 1.0f, 0.0f }
+            glm::vec3{ -4.0f, 1.0f, 0.0f }
         );
         auto circle4 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -49,7 +73,7 @@ public:
         circle4->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ 4.0f, 1.0f, 0.0f }
+            glm::vec3{ 0.0f, 1.0f, 4.0f }
         );
         auto circle5 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
@@ -58,51 +82,60 @@ public:
         circle5->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ 0.0f },
-            glm::vec3{ -4.0f, 1.0f, 0.0f }
+            glm::vec3{ 0.0f, 1.0f, -4.0f }
         );
-        m_Primitives.AddItem(circle);
-        m_Primitives.AddItem(circle2);
-        m_Primitives.AddItem(circle3);
-        m_Primitives.AddItem(circle4);
-        m_Primitives.AddItem(circle5);
-        simplePrimitives.push_back(circle);
+        auto quad = std::make_shared<SimplePrimitive>(
+            std::make_shared<Quad>(20.0f, 20.0f),
+            std::make_unique<LambertianMaterial>(glm::vec3{ 0.7f, 0.7f, 0.4f})
+        );
+        quad->SetTransform(
+            glm::vec3{ 1.0f },
+            glm::vec3{ 0.0f, 0.0f, 0.0f },
+            glm::vec3{ 0.0f, 0.0f, 0.0f }
+        );
+        // simplePrimitives.push_back(circle);
         simplePrimitives.push_back(circle2);
         simplePrimitives.push_back(circle3);
         simplePrimitives.push_back(circle4);
         simplePrimitives.push_back(circle5);
-        auto quad = std::make_shared<SimplePrimitive>(
-            std::make_shared<Quad>(10.0f, 10.0f),
-            std::make_unique<LambertianMaterial>(glm::vec3{ 0.8f, 0.8f, 0.8f})
-        );
-        quad->SetTransform(
-            glm::vec3{ 1.0f },
-            glm::vec3{ 20.0f, 0.0f, 0.0f },
-            glm::vec3{ -1.0f, -1.0f, -1.0f }
-        );
-        m_Primitives.AddItem(quad);
         simplePrimitives.push_back(quad);
+        simplePrimitives.push_back(lightQuad);
+        simplePrimitives.push_back(lightQuad2);
         
-        auto ply = std::make_shared<Mesh>(
+        auto bunny = std::make_shared<Mesh>(
             // "../../assets/icosahedron.ply"
             // "../../assets/cube_uv.ply"
             "../../assets/bunny.ply"
+            // "../../assets/feline.ply"
         );
 
-        auto triMesh = std::make_shared<TriangleList>(
-            *ply,
+        auto bunnyMesh = std::make_shared<TriangleList>(
+            *bunny,
             // std::make_unique<DielectricMaterial>(0.9f)
             // std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
             // std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f }, 0.1f)
-            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.7f, 0.85f})
+            std::make_unique<DielectricMaterial>(1.1f)
         );
-        triMesh->SetTransform(
+        bunnyMesh->SetTransform(
             glm::vec3{ 1.0f },
             glm::vec3{ -90.0f, 0.0f, 0.0f },
-            glm::vec3{ 0.0f, 1.0f, 0.0f }
+            glm::vec3{ 1.0f, 1.5f, 0.0f }
         );
-        m_Primitives.AddItem(triMesh);
-        auto triangles = triMesh->GetPrimitives();
-        simplePrimitives.insert(simplePrimitives.begin(), triangles.begin(), triangles.end());
+        
+        auto feline = std::make_shared<Mesh>("../../assets/dragon.ply");
+        auto felineMesh = std::make_shared<TriangleList>(
+            *feline,
+            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.7f, 0.85f})
+        );
+        felineMesh->SetTransform(
+            glm::vec3{ 2.0f },
+            glm::vec3{ -90.0f, 0.0f, 0.0f },
+            glm::vec3{ -1.0f, 2.0f, 0.0f }
+        );
+        auto bunnyTriangles = bunnyMesh->GetPrimitives();
+        auto felineTriangles = felineMesh->GetPrimitives();
+        simplePrimitives.insert(simplePrimitives.begin(), bunnyTriangles.begin(), bunnyTriangles.end());
+        simplePrimitives.insert(simplePrimitives.begin(), felineTriangles.begin(), felineTriangles.end());
         m_BVH = std::make_shared<BVH>(simplePrimitives);
     }
 
