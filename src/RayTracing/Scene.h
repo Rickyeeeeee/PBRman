@@ -28,7 +28,7 @@ public:
             std::make_shared<Quad>(8.0f, 8.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
             // std::make_unique<DielectricMaterial>(0.9f)
-            std::make_unique<EmissiveMaterial>(glm::vec3{ 3.0f, 5.0f, 2.0f })
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 3.0f, 4.0f, 2.0f })
         );
 
         lightQuad->SetTransform(
@@ -40,7 +40,7 @@ public:
             std::make_shared<Quad>(8.0f, 8.0f),
             // std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f })
             // std::make_unique<DielectricMaterial>(0.9f)
-            std::make_unique<EmissiveMaterial>(glm::vec3{ 6.0f, 2.0f, 1.0f })
+            std::make_unique<EmissiveMaterial>(glm::vec3{ 3.0f, 2.0f, 1.0f })
         );
         lightQuad2->SetTransform(
             glm::vec3{ 1.0f },
@@ -114,7 +114,7 @@ public:
             // std::make_unique<DielectricMaterial>(0.9f)
             // std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
             // std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f }, 0.1f)
-            std::make_unique<DielectricMaterial>(1.1f)
+            std::make_unique<DielectricMaterial>(0.9f)
         );
         bunnyMesh->SetTransform(
             glm::vec3{ 1.0f },
@@ -125,12 +125,12 @@ public:
         auto feline = std::make_shared<Mesh>("../../assets/dragon.ply");
         auto felineMesh = std::make_shared<TriangleList>(
             *feline,
-            std::make_shared<LambertianMaterial>(glm::vec3{ 0.8f, 0.7f, 0.85f})
+            std::make_shared<LambertianMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f})
         );
         felineMesh->SetTransform(
             glm::vec3{ 2.0f },
             glm::vec3{ -90.0f, 0.0f, 0.0f },
-            glm::vec3{ -1.0f, 2.0f, 0.0f }
+            glm::vec3{ -1.0f, 1.0f, 0.0f }
         );
         auto bunnyTriangles = bunnyMesh->GetPrimitives();
         auto felineTriangles = felineMesh->GetPrimitives();
