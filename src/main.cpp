@@ -42,6 +42,7 @@ void CreateSwapChainRenderTargets();
 void CreateAssets();
 void InitImgui();
 void WaitForFenceValue(nvrhi::RefCountPtr<ID3D12Fence> fence, uint64_t value, HANDLE eventHandle);
+void UpdateImgui();
 
 // Helper Functions
 void ThrowIfFailed(HRESULT hr) {
@@ -114,8 +115,12 @@ glm::vec3 RRTAndODTFit(const glm::vec3& v) {
 glm::vec3 toneMapACES(const glm::vec3& color) {
     const float exposure = 1.0f;  // or compute per-scene
     glm::vec3 mapped = RRTAndODTFit(color * exposure);
+    return mapped;
     return glm::clamp(mapped, 0.0f, 1.0f);  // use your clamp
 };
+
+static int accumulateCount = 0;
+static int BVHDebugDepth = 0;
 
 int main() {
 
@@ -133,11 +138,6 @@ int main() {
 
     ImGuiIO& io = ImGui::GetIO(); (void)io;
 
-   // Our state
-    bool show_demo_window = false;
-    bool show_image = true;
-    int accumulateCount = 0;
-    int BVHDebugDepth = 0;
 
     RayRenderer renderer;
 
@@ -190,110 +190,10 @@ int main() {
         ThrowIfFailed(commandQueue->Signal(frameFence.Get(), imageUploadFenceValue));
         WaitForFenceValue(frameFence, imageUploadFenceValue, frameFenceEvent);
 
-        camera->Update(deltaTime * 5.0f);
+        UpdateImgui();
 
-        // ImGui_ImplWin32_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        
-        ImGuiDockNodeFlags dockNodeFlags = ImGuiDockNodeFlags_AutoHideTabBar;
-        ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (show_demo_window)
-            ImGui::ShowDemoWindow(&show_demo_window);
+        camera->Update(0.5f);
 
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_image);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::SliderInt("BVH Debug Depth", &BVHDebugDepth, 0, 10);
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-            ImGui::End();
-        }
-
-        bool cameraUpdated = false;
-        // 3. Show another simple window.
-        if (show_image)
-        {
-            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-            ImGui::Begin("Viewport", &show_image);
-            auto object = image->GetTexture().Get();
-            auto imguiWindowWidth = ImGui::GetContentRegionAvail().x;
-            auto imguiWindowHeight = ImGui::GetContentRegionAvail().y;
-            auto imguiAspect = imguiWindowHeight / imguiWindowWidth;
-            float width, height;
-            if (imguiAspect < aspectRatio)
-            {
-                height = imguiWindowHeight;
-                width = imguiWindowHeight / aspectRatio;
-                ImGui::SetCursorPosX((imguiWindowWidth - width) * 0.5f);
-            }
-            else
-            {
-                width = imguiWindowWidth;
-                height = imguiWindowWidth * aspectRatio;
-                ImGui::SetCursorPosY((imguiWindowHeight - height) * 0.5f);
-            }
-            // ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
-            ImGui::Image((ImTextureID)quadColorAttachmentHandle.Get(), ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
-
-            bool hovering = ImGui::IsItemHovered();
-            bool leftMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
-            bool rightMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right);
-            // mouse scroll
-            if (hovering && io.MouseWheel != 0.0f)
-            {
-                float speed = 0.8f; // Adjust zoom speed as needed
-                camera->Zoom(io.MouseWheel * speed);
-                cameraUpdated = true;
-            }
-
-            if (hovering && leftMousedragging)
-            {
-                ImVec2 delta = io.MouseDelta;
-                float speed = 150.0f; // Adjust speed as needed
-                camera->Rotate(
-                    -delta.y * speed / width, 
-                    -delta.x * speed / height);
-                cameraUpdated = true;
-            }
-
-            if (hovering && rightMousedragging)
-            {
-                ImVec2 delta = io.MouseDelta;
-                float speed = 10.0f; // Adjust speed as needed
-                camera->Translate(
-                    -delta.x * speed / width, 
-                    delta.y * speed / height);
-                cameraUpdated = true;
-            }
-
-            ImGui::End();
-            ImGui::PopStyleVar();
-        }
-        if (cameraUpdated)
-        {
-            accumulateCount = 0;
-            for (uint32_t i = 0; i < viewportWidth * viewportHeight * 3; ++i)
-            {
-                accumulationData[i] = 0.0f;
-            }
-        }
-        ImGui::Render();
        
         std::vector<CubeAABB> cubes;
 
@@ -678,4 +578,116 @@ static void GetHardwareAdapter(
     if (!*ppAdapter) {
         throw std::runtime_error("No suitable Direct3D 12 adapter found.");
     }
+}
+
+static bool show_demo_window = false;
+static bool show_image = true;
+
+
+void UpdateImgui()
+{
+    // ImGui_ImplWin32_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    
+    ImGuiDockNodeFlags dockNodeFlags = ImGuiDockNodeFlags_AutoHideTabBar;
+    ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    if (show_demo_window)
+        ImGui::ShowDemoWindow(&show_demo_window);
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    {
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        ImGui::Checkbox("Another Window", &show_image);
+
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::SliderInt("BVH Debug Depth", &BVHDebugDepth, 0, 10);
+
+        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+        ImGui::End();
+    }
+
+    bool cameraUpdated = false;
+    // 3. Show another simple window.
+    if (show_image)
+    {
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
+        ImGui::Begin("Viewport", &show_image);
+        auto object = image->GetTexture().Get();
+        auto imguiWindowWidth = ImGui::GetContentRegionAvail().x;
+        auto imguiWindowHeight = ImGui::GetContentRegionAvail().y;
+        auto imguiAspect = imguiWindowHeight / imguiWindowWidth;
+        float width, height;
+        if (imguiAspect < aspectRatio)
+        {
+            height = imguiWindowHeight;
+            width = imguiWindowHeight / aspectRatio;
+            ImGui::SetCursorPosX((imguiWindowWidth - width) * 0.5f);
+        }
+        else
+        {
+            width = imguiWindowWidth;
+            height = imguiWindowWidth * aspectRatio;
+            ImGui::SetCursorPosY((imguiWindowHeight - height) * 0.5f);
+        }
+        // ImGui::Image((ImTextureID)object, ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+        ImGui::Image((ImTextureID)quadColorAttachmentHandle.Get(), ImVec2(width, height), ImVec2(0, 0), ImVec2(1, 1));
+
+        bool hovering = ImGui::IsItemHovered();
+        bool leftMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
+        bool rightMousedragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right);
+        // mouse scroll
+        if (hovering && io.MouseWheel != 0.0f)
+        {
+            float speed = 0.7f; // Adjust zoom speed as needed
+            camera->Zoom(io.MouseWheel * speed);
+            cameraUpdated = true;
+        }
+
+        if (hovering && leftMousedragging)
+        {
+            ImVec2 delta = io.MouseDelta;
+            float speed = 150.0f; // Adjust speed as needed
+            camera->Rotate(
+                -delta.y * speed / width, 
+                -delta.x * speed / height);
+            cameraUpdated = true;
+        }
+
+        if (hovering && rightMousedragging)
+        {
+            ImVec2 delta = io.MouseDelta;
+            float speed = 10.0f; // Adjust speed as needed
+            camera->Translate(
+                -delta.x * speed / width, 
+                delta.y * speed / height);
+            cameraUpdated = true;
+        }
+
+        ImGui::End();
+        ImGui::PopStyleVar();
+    }
+    if (cameraUpdated)
+    {
+        accumulateCount = 0;
+        for (uint32_t i = 0; i < viewportWidth * viewportHeight * 3; ++i)
+        {
+            accumulationData[i] = 0.0f;
+        }
+    }
+    ImGui::Render();
 }

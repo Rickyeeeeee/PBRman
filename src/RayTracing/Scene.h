@@ -130,7 +130,7 @@ public:
         felineMesh->SetTransform(
             glm::vec3{ 2.0f },
             glm::vec3{ -90.0f, 0.0f, 0.0f },
-            glm::vec3{ -1.0f, 1.0f, 0.0f }
+            glm::vec3{ -1.0f, 1.5f, 0.0f }
         );
         auto bunnyTriangles = bunnyMesh->GetPrimitives();
         auto felineTriangles = felineMesh->GetPrimitives();
