@@ -77,7 +77,7 @@ public:
         );
         auto circle5 = std::make_shared<SimplePrimitive>(
             std::make_shared<Circle>(1.0f),
-            std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 0.7, 0.8f }, 0.1f)
+            std::make_unique<MetalMaterial>(glm::vec3{ 1.0f, 0.7, 0.8f }, 0.01f)
         );
         circle5->SetTransform(
             glm::vec3{ 1.0f },
@@ -113,8 +113,8 @@ public:
             *bunny,
             // std::make_unique<DielectricMaterial>(0.9f)
             // std::make_unique<EmissiveMaterial>(glm::vec3{ 5.0f, 5.0f, 4.0f })
-            // std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f }, 0.1f)
-            std::make_unique<DielectricMaterial>(0.9f)
+            std::make_shared<MetalMaterial>(glm::vec3{ 1.0f, 1.0f, 1.0f }, 0.5f)
+            // std::make_unique<DielectricMaterial>(0.9f)
         );
         bunnyMesh->SetTransform(
             glm::vec3{ 1.0f },
